@@ -24,8 +24,16 @@ export default function ClientCard({
 
   return (
     <Box>
-      <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-        <Typography variant="h5" fontWeight={700}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
+        <Typography variant="h5" sx={{
+          fontWeight: 700
+        }}>
           {fullName}
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
@@ -33,7 +41,6 @@ export default function ClientCard({
           ← До списку
         </Link>
       </Stack>
-
       <Paper>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }}>
           <Tab label={T.contactCard.tabs.general} />

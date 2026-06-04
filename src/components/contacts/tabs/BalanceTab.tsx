@@ -87,16 +87,22 @@ export default function BalanceTab({
     <Box>
       <Paper variant="outlined" sx={{ p: 2, mb: 2, display: "flex", alignItems: "center" }}>
         <Box>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Баланс складається із суми всіх взаєморозрахунків
           </Typography>
         </Box>
         <Box sx={{ flexGrow: 1 }} />
         <Box sx={{ textAlign: "right" }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             Баланс
           </Typography>
-          <Typography variant="h6" fontWeight={700}>
+          <Typography variant="h6" sx={{
+            fontWeight: 700
+          }}>
             {formatUAH(balance)}
           </Typography>
           <Typography variant="caption" color={balance === 0 ? "success.main" : "text.secondary"}>
@@ -104,8 +110,9 @@ export default function BalanceTab({
           </Typography>
         </Box>
       </Paper>
-
-      <Stack direction="row" spacing={1.5} mb={1.5}>
+      <Stack direction="row" spacing={1.5} sx={{
+        mb: 1.5
+      }}>
         <Button variant="contained" color="success" onClick={() => setDialog("advance")}>
           + Аванс
         </Button>
@@ -116,9 +123,7 @@ export default function BalanceTab({
           + Коригування
         </Button>
       </Stack>
-
       <DataTable data={events} columns={cols} dense maxHeight={420} emptyText="Немає подій" />
-
       {dialog && (
         <PaymentDialog
           open

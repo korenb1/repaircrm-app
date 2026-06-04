@@ -48,7 +48,12 @@ export default function LoginPage() {
     >
       <Card sx={{ width: 360 }}>
         <CardContent>
-          <Typography variant="h5" fontWeight={700} mb={2}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 700,
+              mb: 2
+            }}>
             {T.appName}
           </Typography>
           <form onSubmit={onSubmit}>

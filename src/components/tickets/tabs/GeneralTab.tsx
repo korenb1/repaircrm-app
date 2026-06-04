@@ -71,7 +71,7 @@ export default function GeneralTab({
   return (
     <Box sx={{ maxWidth: 720 }}>
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Autocomplete
             options={profiles}
             getOptionLabel={(o) => o.full_name}
@@ -80,7 +80,7 @@ export default function GeneralTab({
             renderInput={(p) => <TextField {...p} label="Менеджер" />}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Autocomplete
             options={profiles}
             getOptionLabel={(o) => o.full_name}
@@ -89,7 +89,7 @@ export default function GeneralTab({
             renderInput={(p) => <TextField {...p} label="Технік" />}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Група"
             value={ticket.group?.name ?? "—"}
@@ -97,7 +97,7 @@ export default function GeneralTab({
             disabled
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Модель"
             value={ticket.model?.name ?? "—"}
@@ -105,7 +105,7 @@ export default function GeneralTab({
             disabled
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Серійний номер / IMEI"
             value={snImei}
@@ -113,7 +113,7 @@ export default function GeneralTab({
             fullWidth
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Колір"
             value={color}
@@ -121,7 +121,7 @@ export default function GeneralTab({
             fullWidth
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label="Стан"
             value={deviceState}
@@ -131,7 +131,7 @@ export default function GeneralTab({
             minRows={2}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label="Несправність"
             value={malfunction}
@@ -141,7 +141,7 @@ export default function GeneralTab({
             minRows={2}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label="Комплектація"
             value={complectation}
@@ -151,7 +151,7 @@ export default function GeneralTab({
             minRows={2}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Орієнтовна ціна"
             type="number"
@@ -160,7 +160,7 @@ export default function GeneralTab({
             fullWidth
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <DateTimePicker
             label="Термін"
             value={dueDate}
@@ -169,7 +169,7 @@ export default function GeneralTab({
             slotProps={{ textField: { fullWidth: true } }}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <FormControlLabel
             control={
               <Checkbox checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
@@ -177,7 +177,7 @@ export default function GeneralTab({
             label="Терміново"
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField
             label="Нотатки менеджера"
             value={managerNotes}
@@ -188,8 +188,12 @@ export default function GeneralTab({
           />
         </Grid>
       </Grid>
-
-      <Stack direction="row" justifyContent="flex-end" mt={2}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "flex-end",
+          mt: 2
+        }}>
         <Button variant="contained" onClick={save} disabled={saving}>
           {T.common.save}
         </Button>

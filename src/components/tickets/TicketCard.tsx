@@ -40,8 +40,16 @@ export default function TicketCard({
 
   return (
     <Box>
-      <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-        <Typography variant="h5" fontWeight={700}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
+        <Typography variant="h5" sx={{
+          fontWeight: 700
+        }}>
           Заявка №{ticket.number}
         </Typography>
         <StatusBadge ticketId={ticket.id} status={ticket.status} />
@@ -50,7 +58,6 @@ export default function TicketCard({
           ← До списку
         </Link>
       </Stack>
-
       <Paper>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }}>
           <Tab label={T.ticket.tabs.general} />
@@ -86,10 +93,14 @@ export default function TicketCard({
             justifyContent: "flex-end",
           }}
         >
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Оплачено:&nbsp;
           </Typography>
-          <Typography variant="body1" fontWeight={700}>
+          <Typography variant="body1" sx={{
+            fontWeight: 700
+          }}>
             {formatUAH(paid)}
           </Typography>
         </Box>

@@ -61,7 +61,9 @@ export default function TicketsTab({
 
   return (
     <Box>
-      <Stack direction="row" mb={1.5}>
+      <Stack direction="row" sx={{
+        mb: 1.5
+      }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
           Заявка
         </Button>

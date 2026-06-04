@@ -31,7 +31,12 @@ function Card({
     >
       <Box sx={{ display: "flex", alignItems: "center" }}>{icon}</Box>
       <Box>
-        <Typography variant="h6" fontWeight={700} lineHeight={1.1}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            lineHeight: 1.1
+          }}>
           {value}
         </Typography>
         <Typography variant="caption">{label}</Typography>

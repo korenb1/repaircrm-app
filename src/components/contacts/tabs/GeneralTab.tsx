@@ -46,38 +46,43 @@ export default function GeneralTab({ contact }: { contact: Contact }) {
   return (
     <Box sx={{ maxWidth: 640 }}>
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Ім'я" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Прізвище" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Мобільний телефон" value={phone} onChange={(e) => setPhone(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField label="Адреса" value={address} onChange={(e) => setAddress(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField label="Дисконтна картка" value={discountCard} onChange={(e) => setDiscountCard(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={6} sm={4}>
+        <Grid size={{ xs: 6, sm: 4 }}>
           <TextField label="Знижка на послуги, %" type="number" value={discountService} onChange={(e) => setDiscountService(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={6} sm={4}>
+        <Grid size={{ xs: 6, sm: 4 }}>
           <TextField label="Знижка на товари, %" type="number" value={discountGoods} onChange={(e) => setDiscountGoods(e.target.value)} fullWidth />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField label="Нотатка" value={note} onChange={(e) => setNote(e.target.value)} fullWidth multiline minRows={2} />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <TextField label="Теги (через кому)" value={tags} onChange={(e) => setTags(e.target.value)} fullWidth />
         </Grid>
       </Grid>
-      <Stack direction="row" justifyContent="flex-end" mt={2}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "flex-end",
+          mt: 2
+        }}>
         <Button variant="contained" onClick={save} disabled={saving}>
           {T.common.save}
         </Button>

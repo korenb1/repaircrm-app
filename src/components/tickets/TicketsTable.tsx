@@ -98,7 +98,9 @@ export default function TicketsTable({
           <Box>
             <Typography variant="body2">{c.row.original.model?.name ?? "—"}</Typography>
             {c.row.original.sn_imei && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {c.row.original.sn_imei}
               </Typography>
             )}
@@ -130,7 +132,12 @@ export default function TicketsTable({
                 {clientName(cl)}
               </Link>
               {cl.phone && (
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    display: "block"
+                  }}>
                   {cl.phone}
                 </Typography>
               )}
@@ -147,7 +154,9 @@ export default function TicketsTable({
             <Typography variant="body2">
               {c.row.original.manager?.full_name ?? "—"}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {formatDateTime(c.row.original.created_at)}
             </Typography>
           </Box>
@@ -183,7 +192,9 @@ export default function TicketsTable({
           const d = relativeDue(c.row.original.due_date);
           return (
             <Box>
-              <Stack direction="row" spacing={0.5} alignItems="center">
+              <Stack direction="row" spacing={0.5} sx={{
+                alignItems: "center"
+              }}>
                 <Typography
                   variant="body2"
                   color={d.overdue ? "error" : "text.primary"}
@@ -192,7 +203,9 @@ export default function TicketsTable({
                 </Typography>
                 {d.overdue && <AccessTimeIcon color="error" sx={{ fontSize: 14 }} />}
               </Stack>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {d.absolute}
               </Typography>
             </Box>
@@ -205,17 +218,26 @@ export default function TicketsTable({
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={2}>
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 700,
+          mb: 2
+        }}>
         {T.workflows.title}
       </Typography>
-
       <SummaryCards
         mine={summary.mine}
         overdue={summary.overdue}
         receivable={summary.receivable}
       />
-
-      <Stack direction="row" spacing={1.5} mb={1.5} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          mb: 1.5,
+          alignItems: "center"
+        }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
           {T.workflows.newTicket}
         </Button>
@@ -227,13 +249,13 @@ export default function TicketsTable({
           sx={{ width: 280 }}
         />
         <Box sx={{ flexGrow: 1 }} />
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Всього — {filtered.length}
         </Typography>
       </Stack>
-
       <DataTable data={filtered} columns={cols} dense />
-
       <CreateTicketDialog open={open} onClose={() => setOpen(false)} />
     </Box>
   );

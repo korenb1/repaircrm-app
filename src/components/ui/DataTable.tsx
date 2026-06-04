@@ -89,7 +89,9 @@ export default function DataTable<T>({
             <TableRow>
               <TableCell colSpan={columns.length}>
                 <Box sx={{ py: 6, textAlign: "center" }}>
-                  <Typography color="text.secondary">{emptyText}</Typography>
+                  <Typography sx={{
+                    color: "text.secondary"
+                  }}>{emptyText}</Typography>
                 </Box>
               </TableCell>
             </TableRow>

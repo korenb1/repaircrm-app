@@ -100,7 +100,9 @@ export default function InvoicesTab({
               {PAYMENT_KIND[c.row.original.kind] ?? c.row.original.kind}
             </Typography>
             {c.row.original.comment && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {c.row.original.comment}
               </Typography>
             )}
@@ -125,7 +127,9 @@ export default function InvoicesTab({
 
   return (
     <Box>
-      <Stack direction="row" spacing={1.5} mb={1.5}>
+      <Stack direction="row" spacing={1.5} sx={{
+        mb: 1.5
+      }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={addInvoice} disabled={busy}>
           Рахунок
         </Button>
@@ -137,8 +141,9 @@ export default function InvoicesTab({
         maxHeight={240}
         emptyText="Ще немає рахунків"
       />
-
-      <Stack direction="row" spacing={1.5} my={1.5}>
+      <Stack direction="row" spacing={1.5} sx={{
+        my: 1.5
+      }}>
         <Button
           variant="contained"
           color="success"
@@ -163,7 +168,6 @@ export default function InvoicesTab({
         maxHeight={240}
         emptyText="Ще немає оплат"
       />
-
       {dialog && clientId && (
         <PaymentDialog
           open

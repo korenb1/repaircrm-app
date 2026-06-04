@@ -5,7 +5,7 @@ import type { ContactBalance } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export default async function ContactsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: contacts } = await supabase
     .from("contacts")

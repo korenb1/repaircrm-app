@@ -7,12 +7,13 @@ export const dynamic = "force-dynamic";
 export default async function TicketPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const id = Number(params.id);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
   if (Number.isNaN(id)) notFound();
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: ticket } = await supabase
     .from("tickets")

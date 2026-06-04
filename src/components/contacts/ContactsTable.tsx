@@ -82,16 +82,25 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={2}>
+      <Typography
+        variant="h5"
+        sx={{
+          fontWeight: 700,
+          mb: 2
+        }}>
         {T.contacts.title}
       </Typography>
-
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
         <Tab label={T.contacts.people} />
         <Tab label={T.contacts.organizations} />
       </Tabs>
-
-      <Stack direction="row" spacing={1.5} mb={1.5} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          mb: 1.5,
+          alignItems: "center"
+        }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
           {T.contacts.newContact}
         </Button>
@@ -103,13 +112,13 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
           sx={{ width: 280 }}
         />
         <Box sx={{ flexGrow: 1 }} />
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Всього — {filtered.length}
         </Typography>
       </Stack>
-
       <DataTable data={filtered} columns={cols} dense />
-
       <CreateContactDialog
         open={open}
         onClose={() => setOpen(false)}

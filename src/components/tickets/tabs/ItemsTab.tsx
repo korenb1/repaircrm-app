@@ -94,7 +94,9 @@ export default function ItemsTab({
         cell: (c) => (
           <Box>
             <Typography variant="body2">{c.row.original.name}</Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {ITEM_KINDS[c.row.original.kind]}
             </Typography>
           </Box>
@@ -126,8 +128,14 @@ export default function ItemsTab({
 
   return (
     <Box>
-      <Grid container spacing={2} alignItems="center" mb={2}>
-        <Grid item xs={12} sm={3}>
+      <Grid
+        container
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
+        <Grid size={{ xs: 12, sm: 3 }}>
           <Autocomplete
             options={profiles}
             getOptionLabel={(o) => o.full_name}
@@ -136,7 +144,7 @@ export default function ItemsTab({
             renderInput={(p) => <TextField {...p} label="Технік" size="small" />}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid size={{ xs: 12, sm: 3 }}>
           <Autocomplete
             freeSolo
             options={catalog}
@@ -162,7 +170,7 @@ export default function ItemsTab({
             )}
           />
         </Grid>
-        <Grid item xs={6} sm={2}>
+        <Grid size={{ xs: 6, sm: 2 }}>
           <TextField
             label="Ціна"
             type="number"
@@ -172,7 +180,7 @@ export default function ItemsTab({
             fullWidth
           />
         </Grid>
-        <Grid item xs={6} sm={2}>
+        <Grid size={{ xs: 6, sm: 2 }}>
           <TextField
             label="К-сть"
             type="number"
@@ -182,7 +190,7 @@ export default function ItemsTab({
             fullWidth
           />
         </Grid>
-        <Grid item xs={12} sm={2}>
+        <Grid size={{ xs: 12, sm: 2 }}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -194,10 +202,13 @@ export default function ItemsTab({
           </Button>
         </Grid>
       </Grid>
-
       <DataTable data={items} columns={cols} dense maxHeight={360} emptyText="Немає позицій" />
-
-      <Stack alignItems="flex-end" mt={1.5} spacing={0.5}>
+      <Stack
+        spacing={0.5}
+        sx={{
+          alignItems: "flex-end",
+          mt: 1.5
+        }}>
         <Typography variant="body2">
           Підсумок: <b>{formatUAH(subtotal)}</b>
         </Typography>
@@ -205,8 +216,9 @@ export default function ItemsTab({
           Разом: <b>{formatUAH(subtotal)}</b>
         </Typography>
       </Stack>
-
-      <Stack spacing={2} mt={2}>
+      <Stack spacing={2} sx={{
+        mt: 2
+      }}>
         <TextField
           label="Нотатки техніка"
           value={notes}
@@ -223,7 +235,9 @@ export default function ItemsTab({
           multiline
           minRows={3}
         />
-        <Stack direction="row" justifyContent="flex-end">
+        <Stack direction="row" sx={{
+          justifyContent: "flex-end"
+        }}>
           <Button variant="contained" onClick={saveNotes} disabled={busy}>
             {T.common.save}
           </Button>

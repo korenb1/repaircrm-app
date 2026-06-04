@@ -94,7 +94,6 @@ export default function AppShell({
           })}
         </List>
       </Drawer>
-
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <AppBar
           position="sticky"
@@ -104,7 +103,9 @@ export default function AppShell({
         >
           <Toolbar sx={{ minHeight: 56, gap: 2 }}>
             <Box sx={{ flexGrow: 1 }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {userName}
             </Typography>
             <IconButton onClick={(e) => setAnchor(e.currentTarget)} size="small">
