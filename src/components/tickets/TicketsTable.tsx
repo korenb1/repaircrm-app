@@ -27,6 +27,8 @@ export default function TicketsTable({
 }) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  // capture wall-clock once at mount; reading it during render is impure
+  const [now] = useState(() => Date.now());
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -47,7 +49,6 @@ export default function TicketsTable({
   }, [rows, search]);
 
   const summary = useMemo(() => {
-    const now = Date.now();
     let mine = 0,
       overdue = 0,
       receivable = 0;
@@ -63,7 +64,7 @@ export default function TicketsTable({
       receivable += Math.max(0, (r.price ?? 0) - (r.paid ?? 0));
     }
     return { mine, overdue, receivable };
-  }, [rows, currentUserId]);
+  }, [rows, currentUserId, now]);
 
   const cols = useMemo<ColumnDef<TicketRow, any>[]>(
     () => [

@@ -35,42 +35,63 @@ export default function CascadingDeviceSelect({
 
   // load brands when group changes
   useEffect(() => {
-    if (!value.group_id) {
-      setBrands([]);
-      return;
+    let active = true;
+    async function load() {
+      if (!value.group_id) {
+        if (active) setBrands([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("group_id", value.group_id)
+        .order("name");
+      if (active) setBrands(data ?? []);
     }
-    supabase
-      .from("brands")
-      .select("*")
-      .eq("group_id", value.group_id)
-      .order("name")
-      .then(({ data }) => setBrands(data ?? []));
+    load();
+    return () => {
+      active = false;
+    };
   }, [supabase, value.group_id]);
 
   useEffect(() => {
-    if (!value.brand_id) {
-      setModels([]);
-      return;
+    let active = true;
+    async function load() {
+      if (!value.brand_id) {
+        if (active) setModels([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("models")
+        .select("*")
+        .eq("brand_id", value.brand_id)
+        .order("name");
+      if (active) setModels(data ?? []);
     }
-    supabase
-      .from("models")
-      .select("*")
-      .eq("brand_id", value.brand_id)
-      .order("name")
-      .then(({ data }) => setModels(data ?? []));
+    load();
+    return () => {
+      active = false;
+    };
   }, [supabase, value.brand_id]);
 
   useEffect(() => {
-    if (!value.model_id) {
-      setMods([]);
-      return;
+    let active = true;
+    async function load() {
+      if (!value.model_id) {
+        if (active) setMods([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("modifications")
+        .select("*")
+        .eq("model_id", value.model_id)
+        .order("name");
+      if (active) setMods(data ?? []);
     }
-    supabase
-      .from("modifications")
-      .select("*")
-      .eq("model_id", value.model_id)
-      .order("name")
-      .then(({ data }) => setMods(data ?? []));
+    load();
+    return () => {
+      active = false;
+    };
   }, [supabase, value.model_id]);
 
   const find = <X extends { id: number }>(arr: X[], id: number | null) =>
