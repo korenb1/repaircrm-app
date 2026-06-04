@@ -1,0 +1,46 @@
+{
+  "name": "repaircrm-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "create-admin": "tsx scripts/create-admin.ts",
+    "db:reset": "supabase db reset"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.13.5",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@hookform/resolvers": "^3.9.1",
+    "@mui/icons-material": "^6.1.9",
+    "@mui/material": "^6.1.9",
+    "@mui/material-nextjs": "^6.1.9",
+    "@mui/x-date-pickers": "^7.23.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "@tanstack/react-table": "^8.20.5",
+    "dayjs": "^1.11.13",
+    "next": "14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.54.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.9",
+    "@types/react": "^18.3.13",
+    "@types/react-dom": "^18.3.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.18",
+    "supabase": "^2.104.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.0": true,
+    "unrs-resolver@1.12.2": true
+  }
+}
