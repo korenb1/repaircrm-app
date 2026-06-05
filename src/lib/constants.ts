@@ -42,7 +42,7 @@ export const T = {
   },
   workflows: {
     title: "Заявки",
-    newTicket: "+ Заявка",
+    newTicket: "Заявка",
     search: "Пошук…",
     cards: { mine: "Мої заявки", overdue: "Прострочені", receivable: "До оплати" },
     cols: {
