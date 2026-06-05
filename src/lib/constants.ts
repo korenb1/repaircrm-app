@@ -64,7 +64,7 @@ export const T = {
     title: "Контакти",
     people: "Люди",
     organizations: "Організації",
-    newContact: "+ Контакт",
+    newContact: "Контакт",
     cols: {
       name: "Ім'я",
       email: "Email",
