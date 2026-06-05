@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import TicketCard from "@/components/tickets/TicketCard";
+import { getTicketDetail } from "@/lib/data/ticket";
 
 export const dynamic = "force-dynamic";
 
@@ -13,41 +13,17 @@ export default async function TicketPage({
   const id = Number(idParam);
   if (Number.isNaN(id)) notFound();
 
-  const supabase = await createClient();
-
-  const { data: ticket } = await supabase
-    .from("tickets")
-    .select(
-      `*,
-       group:groups(name),
-       brand:brands(name),
-       model:models(name),
-       client:contacts(id,first_name,last_name,phone),
-       manager:profiles!tickets_manager_id_fkey(full_name),
-       technician:profiles!tickets_technician_id_fkey(full_name)`,
-    )
-    .eq("id", id)
-    .single();
-
-  if (!ticket) notFound();
-
-  const [{ data: items }, { data: invoices }, { data: payments }, { data: profiles }, { data: catalog }] =
-    await Promise.all([
-      supabase.from("ticket_items").select("*").eq("ticket_id", id).order("id"),
-      supabase.from("invoices").select("*").eq("ticket_id", id).order("id"),
-      supabase.from("payments").select("*").eq("ticket_id", id).order("created_at"),
-      supabase.from("profiles").select("*"),
-      supabase.from("service_catalog").select("*").order("name"),
-    ]);
+  const data = await getTicketDetail(id);
+  if (!data) notFound();
 
   return (
     <TicketCard
-      ticket={ticket as any}
-      items={items ?? []}
-      invoices={invoices ?? []}
-      payments={payments ?? []}
-      profiles={profiles ?? []}
-      catalog={catalog ?? []}
+      ticket={data.ticket as any}
+      items={data.items}
+      invoices={data.invoices}
+      payments={data.payments}
+      profiles={data.profiles}
+      catalog={data.catalog}
     />
   );
 }

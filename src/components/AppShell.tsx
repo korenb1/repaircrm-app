@@ -94,7 +94,14 @@ export default function AppShell({
           })}
         </List>
       </Drawer>
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
         <AppBar
           position="sticky"
           color="default"
@@ -128,7 +135,10 @@ export default function AppShell({
           </Toolbar>
         </AppBar>
 
-        <Box component="main" sx={{ flexGrow: 1, p: 2 }}>
+        <Box
+          component="main"
+          sx={{ flexGrow: 1, minWidth: 0, p: { xs: 1, sm: 2 } }}
+        >
           {children}
         </Box>
       </Box>

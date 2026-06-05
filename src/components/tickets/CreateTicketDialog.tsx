@@ -16,6 +16,8 @@ import {
   Stack,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -45,6 +47,8 @@ export default function CreateTicketDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -152,7 +156,7 @@ export default function CreateTicketDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
         Нова заявка
         <Box sx={{ flexGrow: 1 }} />

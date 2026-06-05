@@ -17,6 +17,8 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { createClient } from "@/lib/supabase/client";
@@ -33,6 +35,8 @@ export default function CreateContactDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [type, setType] = useState<"person" | "organization">(defaultType);
   const [isSupplier, setIsSupplier] = useState(false);
@@ -88,7 +92,7 @@ export default function CreateContactDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
         Новий контакт
         <Box sx={{ flexGrow: 1 }} />

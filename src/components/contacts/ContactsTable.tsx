@@ -90,7 +90,14 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
         }}>
         {T.contacts.title}
       </Typography>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}>
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ mb: 1 }}
+      >
         <Tab label={T.contacts.people} />
         <Tab label={T.contacts.organizations} />
       </Tabs>

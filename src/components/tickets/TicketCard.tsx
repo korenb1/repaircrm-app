@@ -24,6 +24,7 @@ export default function TicketCard({
   payments,
   profiles,
   catalog,
+  embedded = false,
 }: {
   ticket: TicketRow;
   items: TicketItem[];
@@ -31,6 +32,7 @@ export default function TicketCard({
   payments: Payment[];
   profiles: Profile[];
   catalog: ServiceCatalogItem[];
+  embedded?: boolean;
 }) {
   const [tab, setTab] = useState(0);
 
@@ -45,7 +47,10 @@ export default function TicketCard({
         spacing={2}
         sx={{
           alignItems: "center",
-          mb: 2
+          flexWrap: "wrap",
+          rowGap: 1,
+          mb: 2,
+          pr: embedded ? 4 : 0,
         }}>
         <Typography variant="h5" sx={{
           fontWeight: 700
@@ -54,12 +59,21 @@ export default function TicketCard({
         </Typography>
         <StatusBadge ticketId={ticket.id} status={ticket.status} />
         <Box sx={{ flexGrow: 1 }} />
-        <Link href="/workflows" style={{ color: "#1976d2", textDecoration: "none" }}>
-          ← До списку
-        </Link>
+        {!embedded && (
+          <Link href="/workflows" style={{ color: "#1976d2", textDecoration: "none" }}>
+            ← До списку
+          </Link>
+        )}
       </Stack>
-      <Paper>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }}>
+      <Paper variant={embedded ? "outlined" : "elevation"}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{ px: 2 }}
+        >
           <Tab label={T.ticket.tabs.general} />
           <Tab label={T.ticket.tabs.items} />
           <Tab label={T.ticket.tabs.invoices} />

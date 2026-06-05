@@ -13,11 +13,13 @@ export default function ClientCard({
   balance,
   payments,
   tickets,
+  embedded = false,
 }: {
   contact: Contact;
   balance: number;
   payments: Payment[];
   tickets: TicketRow[];
+  embedded?: boolean;
 }) {
   const [tab, setTab] = useState(0);
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
@@ -29,7 +31,10 @@ export default function ClientCard({
         spacing={2}
         sx={{
           alignItems: "center",
-          mb: 2
+          flexWrap: "wrap",
+          rowGap: 1,
+          mb: 2,
+          pr: embedded ? 4 : 0,
         }}>
         <Typography variant="h5" sx={{
           fontWeight: 700
@@ -37,12 +42,21 @@ export default function ClientCard({
           {fullName}
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
-        <Link href="/contacts" style={{ color: "#1976d2", textDecoration: "none" }}>
-          ← До списку
-        </Link>
+        {!embedded && (
+          <Link href="/contacts" style={{ color: "#1976d2", textDecoration: "none" }}>
+            ← До списку
+          </Link>
+        )}
       </Stack>
-      <Paper>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }}>
+      <Paper variant={embedded ? "outlined" : "elevation"}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{ px: 2 }}
+        >
           <Tab label={T.contactCard.tabs.general} />
           <Tab label={T.contactCard.tabs.balance} />
           <Tab label={T.contactCard.tabs.tickets} />
