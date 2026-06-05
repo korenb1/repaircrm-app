@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import {
   Box,
   Button,
@@ -11,30 +10,13 @@ import {
   Typography,
   Alert,
 } from "@mui/material";
-import { createClient } from "@/lib/supabase/client";
 import { T } from "@/lib/constants";
+import { login, type LoginState } from "./actions";
+
+const initialState: LoginState = { error: null };
 
 export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [email, setEmail] = useState("admin@repair.local");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(T.login.error);
-      return;
-    }
-    router.push("/workflows");
-    router.refresh();
-  }
+  const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
     <Box
@@ -44,41 +26,46 @@ export default function LoginPage() {
         alignItems: "center",
         justifyContent: "center",
         bgcolor: "background.default",
+        p: 2,
       }}
     >
-      <Card sx={{ width: 360 }}>
+      <Card sx={{ width: "100%", maxWidth: 360 }}>
         <CardContent>
           <Typography
             variant="h5"
             sx={{
               fontWeight: 700,
-              mb: 2
-            }}>
+              mb: 2,
+            }}
+          >
             {T.appName}
           </Typography>
-          <form onSubmit={onSubmit}>
+          {/* action={formAction} works as a native POST before hydration */}
+          <form action={formAction}>
             <Stack spacing={2}>
               <TextField
+                name="email"
                 label={T.login.email}
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                defaultValue="admin@repair.local"
                 fullWidth
-                autoFocus
+                autoComplete="username"
+                slotProps={{ inputLabel: { shrink: true } }}
               />
               <TextField
+                name="password"
                 label={T.login.password}
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 fullWidth
+                autoComplete="current-password"
+                slotProps={{ inputLabel: { shrink: true } }}
               />
-              {error && <Alert severity="error">{error}</Alert>}
+              {state.error && <Alert severity="error">{state.error}</Alert>}
               <Button
                 type="submit"
                 variant="contained"
                 size="large"
-                disabled={loading}
+                disabled={pending}
                 fullWidth
               >
                 {T.login.submit}
