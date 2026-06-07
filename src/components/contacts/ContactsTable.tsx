@@ -82,14 +82,6 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
 
   return (
     <Box>
-      <Typography
-        variant="h5"
-        sx={{
-          fontWeight: 700,
-          mb: 2
-        }}>
-        {T.contacts.title}
-      </Typography>
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
@@ -125,7 +117,7 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
           Всього — {filtered.length}
         </Typography>
       </Stack>
-      <DataTable data={filtered} columns={cols} dense />
+      <DataTable data={filtered} columns={cols} dense storageKey="contacts" />
       <CreateContactDialog
         open={open}
         onClose={() => setOpen(false)}

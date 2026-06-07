@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
+import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -28,6 +29,7 @@ const WIDTH = 64;
 const NAV = [
   { href: "/workflows", label: T.nav.workflows, icon: <AssignmentIcon /> },
   { href: "/contacts", label: T.nav.contacts, icon: <PeopleIcon /> },
+  { href: "/settings", label: T.nav.settings, icon: <SettingsIcon /> },
 ];
 
 export default function AppShell({
@@ -41,6 +43,10 @@ export default function AppShell({
   const router = useRouter();
   const supabase = createClient();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+
+  // Title for the current section, derived from the nav entry that matches the
+  // active route (so pages no longer render their own heading).
+  const pageTitle = NAV.find((n) => pathname.startsWith(n.href))?.label ?? "";
 
   async function logout() {
     await supabase.auth.signOut();
@@ -109,6 +115,9 @@ export default function AppShell({
           sx={{ borderBottom: "1px solid #e0e0e0", bgcolor: "#fff" }}
         >
           <Toolbar sx={{ minHeight: 56, gap: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1.56rem" }}>
+              {pageTitle}
+            </Typography>
             <Box sx={{ flexGrow: 1 }} />
             <Typography variant="body2" sx={{
               color: "text.secondary"

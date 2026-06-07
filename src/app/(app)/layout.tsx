@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/AppShell";
+import { StatusProvider } from "@/lib/status-context";
+import type { TicketStatusRow, StatusTransition } from "@/lib/types";
 
 export default async function AppLayout({
   children,
@@ -22,5 +24,20 @@ export default async function AppLayout({
 
   const userName = profile?.full_name ?? user.email ?? "Користувач";
 
-  return <AppShell userName={userName}>{children}</AppShell>;
+  const { data: statuses } = await supabase
+    .from("ticket_statuses")
+    .select("*")
+    .order("sort_order");
+  const { data: transitions } = await supabase
+    .from("status_transitions")
+    .select("*");
+
+  return (
+    <StatusProvider
+      statuses={(statuses ?? []) as TicketStatusRow[]}
+      transitions={(transitions ?? []) as StatusTransition[]}
+    >
+      <AppShell userName={userName}>{children}</AppShell>
+    </StatusProvider>
+  );
 }

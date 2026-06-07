@@ -21,13 +21,18 @@ export async function getTicketDetail(id: number) {
 
   if (!ticket) return null;
 
-  const [{ data: items }, { data: invoices }, { data: payments }, { data: profiles }, { data: catalog }] =
+  const [{ data: items }, { data: invoices }, { data: payments }, { data: profiles }, { data: catalog }, { data: events }] =
     await Promise.all([
       supabase.from("ticket_items").select("*").eq("ticket_id", id).order("id"),
       supabase.from("invoices").select("*").eq("ticket_id", id).order("id"),
       supabase.from("payments").select("*").eq("ticket_id", id).order("created_at"),
       supabase.from("profiles").select("*"),
       supabase.from("service_catalog").select("*").order("name"),
+      supabase
+        .from("ticket_events")
+        .select("*, actor:profiles(full_name)")
+        .eq("ticket_id", id)
+        .order("created_at", { ascending: true }),
     ]);
 
   return {
@@ -37,5 +42,6 @@ export async function getTicketDetail(id: number) {
     payments: payments ?? [],
     profiles: profiles ?? [],
     catalog: catalog ?? [],
+    events: events ?? [],
   };
 }

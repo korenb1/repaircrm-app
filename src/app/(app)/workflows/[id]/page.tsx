@@ -24,6 +24,7 @@ export default async function TicketPage({
       payments={data.payments}
       profiles={data.profiles}
       catalog={data.catalog}
+      events={data.events}
     />
   );
 }

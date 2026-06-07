@@ -5,14 +5,15 @@ import "dayjs/locale/uk";
 dayjs.extend(relativeTime);
 dayjs.locale("uk");
 
+// Format as a plain grouped number then append the ₴ symbol, rather than using
+// currency style — Node and the browser ship different ICU currency data
+// (₴ vs "грн"), which caused SSR/client hydration mismatches.
 const uah = new Intl.NumberFormat("uk-UA", {
-  style: "currency",
-  currency: "UAH",
   maximumFractionDigits: 0,
 });
 
 export function formatUAH(value: number | null | undefined): string {
-  return uah.format(value ?? 0);
+  return `${uah.format(value ?? 0)} ₴`;
 }
 
 export function formatDateTime(value: string | null | undefined): string {

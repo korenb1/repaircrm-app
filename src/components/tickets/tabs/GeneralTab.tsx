@@ -1,28 +1,26 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Autocomplete,
-  Box,
-  Button,
   Checkbox,
   FormControlLabel,
   Grid,
-  Stack,
   TextField,
 } from "@mui/material";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
 import type { Profile, TicketRow } from "@/lib/types";
 
 export default function GeneralTab({
   ticket,
   profiles,
+  registerSave,
 }: {
   ticket: TicketRow;
   profiles: Profile[];
+  registerSave?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -34,7 +32,6 @@ export default function GeneralTab({
     profiles.find((p) => p.id === ticket.technician_id) ?? null,
   );
   const [snImei, setSnImei] = useState(ticket.sn_imei ?? "");
-  const [color, setColor] = useState(ticket.color ?? "");
   const [deviceState, setDeviceState] = useState(ticket.device_state ?? "");
   const [malfunction, setMalfunction] = useState(ticket.malfunction ?? "");
   const [complectation, setComplectation] = useState(ticket.complectation ?? "");
@@ -44,17 +41,14 @@ export default function GeneralTab({
   );
   const [urgent, setUrgent] = useState(ticket.urgent);
   const [managerNotes, setManagerNotes] = useState(ticket.manager_notes ?? "");
-  const [saving, setSaving] = useState(false);
 
   async function save() {
-    setSaving(true);
     await supabase
       .from("tickets")
       .update({
         manager_id: manager?.id ?? null,
         technician_id: technician?.id ?? null,
         sn_imei: snImei || null,
-        color: color || null,
         device_state: deviceState || null,
         malfunction: malfunction || null,
         complectation: complectation || null,
@@ -64,13 +58,17 @@ export default function GeneralTab({
         manager_notes: managerNotes || null,
       })
       .eq("id", ticket.id);
-    setSaving(false);
     router.refresh();
   }
 
+  // Register this tab's save handler with the parent's shared SAVE button.
+  useEffect(() => {
+    registerSave?.(save);
+    return () => registerSave?.(null);
+  });
+
   return (
-    <Box sx={{ maxWidth: 720 }}>
-      <Grid container spacing={2}>
+    <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <Autocomplete
             options={profiles}
@@ -110,14 +108,6 @@ export default function GeneralTab({
             label="Серійний номер / IMEI"
             value={snImei}
             onChange={(e) => setSnImei(e.target.value)}
-            fullWidth
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            label="Колір"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
             fullWidth
           />
         </Grid>
@@ -188,16 +178,5 @@ export default function GeneralTab({
           />
         </Grid>
       </Grid>
-      <Stack
-        direction="row"
-        sx={{
-          justifyContent: "flex-end",
-          mt: 2
-        }}>
-        <Button variant="contained" onClick={save} disabled={saving}>
-          {T.common.save}
-        </Button>
-      </Stack>
-    </Box>
   );
 }

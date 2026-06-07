@@ -4,25 +4,25 @@ import { useRouter } from "next/navigation";
 import { Button, Menu, MenuItem } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { createClient } from "@/lib/supabase/client";
-import { STATUSES, STATUS_ORDER } from "@/lib/constants";
-import type { TicketStatus } from "@/lib/types";
+import { useStatusMeta, useAllowedTargets } from "@/lib/status-context";
 
 export default function StatusBadge({
   ticketId,
   status,
 }: {
   ticketId: number;
-  status: TicketStatus;
+  status: string;
 }) {
   const router = useRouter();
   const supabase = createClient();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
-  const [current, setCurrent] = useState<TicketStatus>(status);
+  const [current, setCurrent] = useState<string>(status);
   const [saving, setSaving] = useState(false);
 
-  const meta = STATUSES[current];
+  const meta = useStatusMeta(current);
+  const targets = useAllowedTargets(current);
 
-  async function change(next: TicketStatus) {
+  async function change(next: string) {
     setAnchor(null);
     if (next === current) return;
     setSaving(true);
@@ -67,13 +67,13 @@ export default function StatusBadge({
         {meta.label}
       </Button>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-        {STATUS_ORDER.map((s) => (
+        {targets.map((s) => (
           <MenuItem
-            key={s}
-            selected={s === current}
+            key={s.key}
+            selected={s.key === current}
             onClick={(e) => {
               e.stopPropagation();
-              change(s);
+              change(s.key);
             }}
           >
             <span
@@ -83,11 +83,11 @@ export default function StatusBadge({
                 height: 10,
                 borderRadius: 2,
                 marginRight: 8,
-                background: STATUSES[s].bg,
+                background: s.bg,
                 border: "1px solid rgba(0,0,0,0.15)",
               }}
             />
-            {STATUSES[s].label}
+            {s.label}
           </MenuItem>
         ))}
       </Menu>

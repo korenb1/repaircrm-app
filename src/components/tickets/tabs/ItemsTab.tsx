@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Autocomplete,
@@ -25,15 +25,15 @@ export default function ItemsTab({
   items,
   profiles,
   catalog,
-  technicianNotes,
   conclusion,
+  registerSave,
 }: {
   ticketId: number;
   items: TicketItem[];
   profiles: Profile[];
   catalog: ServiceCatalogItem[];
-  technicianNotes: string | null;
   conclusion: string | null;
+  registerSave?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -43,7 +43,6 @@ export default function ItemsTab({
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [qty, setQty] = useState("1");
-  const [notes, setNotes] = useState(technicianNotes ?? "");
   const [concl, setConcl] = useState(conclusion ?? "");
   const [busy, setBusy] = useState(false);
 
@@ -77,14 +76,18 @@ export default function ItemsTab({
   }
 
   async function saveNotes() {
-    setBusy(true);
     await supabase
       .from("tickets")
-      .update({ technician_notes: notes || null, conclusion: concl || null })
+      .update({ conclusion: concl || null })
       .eq("id", ticketId);
-    setBusy(false);
     router.refresh();
   }
+
+  // Register notes/conclusion save with the parent's shared SAVE button.
+  useEffect(() => {
+    registerSave?.(saveNotes);
+    return () => registerSave?.(null);
+  });
 
   const cols = useMemo<ColumnDef<TicketItem, any>[]>(
     () => [
@@ -220,14 +223,6 @@ export default function ItemsTab({
         mt: 2
       }}>
         <TextField
-          label="Нотатки техніка"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          fullWidth
-          multiline
-          minRows={2}
-        />
-        <TextField
           label="Висновок / рекомендації клієнту"
           value={concl}
           onChange={(e) => setConcl(e.target.value)}
@@ -235,13 +230,6 @@ export default function ItemsTab({
           multiline
           minRows={3}
         />
-        <Stack direction="row" sx={{
-          justifyContent: "flex-end"
-        }}>
-          <Button variant="contained" onClick={saveNotes} disabled={busy}>
-            {T.common.save}
-          </Button>
-        </Stack>
       </Stack>
     </Box>
   );

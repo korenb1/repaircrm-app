@@ -1,27 +1,4 @@
-import type { TicketStatus, ItemKind } from "./types";
-
-// Ticket statuses with Ukrainian labels + MUI palette colors.
-// Order = display order in dropdowns.
-export const STATUSES: Record<
-  TicketStatus,
-  { label: string; color: string; bg: string }
-> = {
-  draft:            { label: "Чернетка",            color: "#1976d2", bg: "#e3f2fd" },
-  new:              { label: "Нове",                color: "#0288d1", bg: "#e1f5fe" },
-  in_progress:      { label: "В роботі",            color: "#2e7d32", bg: "#e8f5e9" },
-  ready:            { label: "Готове",              color: "#2e7d32", bg: "#c8e6c9" },
-  issued:           { label: "Видано",              color: "#616161", bg: "#eeeeee" },
-  return_no_repair: { label: "Видати без ремонту",  color: "#ffffff", bg: "#ed6c02" },
-};
-
-export const STATUS_ORDER: TicketStatus[] = [
-  "draft",
-  "new",
-  "in_progress",
-  "ready",
-  "issued",
-  "return_no_repair",
-];
+import type { ItemKind } from "./types";
 
 export const ITEM_KINDS: Record<ItemKind, string> = {
   labor: "Робота",
@@ -32,7 +9,7 @@ export const ITEM_KINDS: Record<ItemKind, string> = {
 // UI string table — single source of Ukrainian labels.
 export const T = {
   appName: "RepairCRM",
-  nav: { workflows: "Заявки", contacts: "Контакти" },
+  nav: { workflows: "Заявки", contacts: "Контакти", settings: "Налаштування" },
   login: {
     title: "Вхід",
     email: "Email",
@@ -53,6 +30,7 @@ export const T = {
       malfunction: "Несправність",
       client: "Клієнт",
       created: "Створено",
+      manager: "Менеджер",
       technician: "Технік",
       estPrice: "Орієнт. ціна",
       price: "Ціна",
@@ -75,10 +53,52 @@ export const T = {
     },
   },
   ticket: {
-    tabs: { general: "Загальна інформація", items: "Послуги та товари", invoices: "Рахунки та оплати" },
+    tabs: { general: "Загальна інформація", items: "Послуги та товари", invoices: "Рахунки та оплати", history: "Історія" },
   },
   contactCard: {
-    tabs: { general: "Загальна", balance: "Баланс", tickets: "Заявки" },
+    tabs: { general: "Загальна", balance: "Баланс", tickets: "Заявки", devices: "Пристрої", documents: "Документи" },
+  },
+  settings: {
+    title: "Налаштування",
+    tabs: { catalog: "Каталог пристроїв", services: "Послуги та товари", statuses: "Статуси" },
+    catalog: {
+      groups: "Групи",
+      brands: "Бренди",
+      models: "Моделі",
+      modifications: "Модифікації",
+      pickGroup: "Оберіть групу",
+      pickBrand: "Оберіть бренд",
+      pickModel: "Оберіть модель",
+      newName: "Назва",
+      deleteConfirm: "Видалити «{name}»? Усі вкладені записи буде видалено.",
+    },
+    services: {
+      kind: "Тип",
+      name: "Назва",
+      sku: "Артикул",
+      price: "Ціна",
+      newItem: "Додати позицію",
+      editItem: "Редагувати позицію",
+      deleteConfirm: "Видалити «{name}»?",
+    },
+    statuses: {
+      newStatus: "Додати статус",
+      editStatus: "Редагувати статус",
+      key: "Ключ",
+      label: "Назва",
+      color: "Колір тексту",
+      bg: "Колір фону",
+      sortOrder: "Порядок",
+      isDefault: "За замовчуванням",
+      isTerminal: "Кінцевий",
+      transitionsTo: "Можливі переходи в",
+      transitionsFrom: "Можливі переходи з",
+      preview: "Перегляд",
+      deleteConfirm: "Видалити статус «{name}»?",
+      keyHint: "Латиниця, без пробілів. Після створення не змінюється.",
+      defaultHint: "Новим заявкам присвоюється цей статус.",
+      terminalHint: "Кінцеві статуси виключаються з «Прострочені».",
+    },
   },
   common: {
     save: "Зберегти",

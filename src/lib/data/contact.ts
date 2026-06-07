@@ -13,17 +13,37 @@ export async function getContactDetail(id: number) {
     .single();
   if (!contact) return null;
 
-  const [{ data: balanceRow }, { data: payments }, { data: tickets }, { data: totals }] =
-    await Promise.all([
-      supabase.from("contact_balances").select("*").eq("contact_id", id).single(),
-      supabase.from("payments").select("*").eq("contact_id", id).order("created_at", { ascending: false }),
-      supabase
-        .from("tickets")
-        .select(`*, model:models(name), manager:profiles!tickets_manager_id_fkey(full_name)`)
-        .eq("client_id", id)
-        .order("id", { ascending: false }),
-      supabase.from("ticket_totals").select("*"),
-    ]);
+  const [
+    { data: balanceRow },
+    { data: payments },
+    { data: tickets },
+    { data: totals },
+    { data: phones },
+    { data: documents },
+  ] = await Promise.all([
+    supabase.from("contact_balances").select("*").eq("contact_id", id).single(),
+    supabase.from("payments").select("*").eq("contact_id", id).order("created_at", { ascending: false }),
+    supabase
+      .from("tickets")
+      .select(
+        `*, group:groups(name), brand:brands(name), model:models(name), modification:modifications(name), manager:profiles!tickets_manager_id_fkey(full_name)`,
+      )
+      .eq("client_id", id)
+      .order("id", { ascending: false }),
+    supabase.from("ticket_totals").select("*"),
+    supabase
+      .from("contact_phones")
+      .select("*")
+      .eq("contact_id", id)
+      .order("is_primary", { ascending: false })
+      .order("sort_order")
+      .order("id"),
+    supabase
+      .from("contact_documents")
+      .select("*")
+      .eq("contact_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const totalsMap = new Map<number, TicketTotals>(
     (totals ?? []).map((t) => [t.ticket_id, t]),
@@ -39,5 +59,7 @@ export async function getContactDetail(id: number) {
     balance: balanceRow?.balance ?? 0,
     payments: payments ?? [],
     tickets: ticketRows,
+    phones: phones ?? [],
+    documents: documents ?? [],
   };
 }

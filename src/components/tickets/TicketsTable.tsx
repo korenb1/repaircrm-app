@@ -9,6 +9,7 @@ import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import SummaryCards from "@/components/ui/SummaryCards";
 import CreateTicketDialog from "@/components/tickets/CreateTicketDialog";
+import { useTerminalKeys } from "@/lib/status-context";
 import { T } from "@/lib/constants";
 import { formatUAH, formatDateTime, relativeDue } from "@/lib/money";
 import type { TicketRow } from "@/lib/types";
@@ -29,6 +30,7 @@ export default function TicketsTable({
   const [open, setOpen] = useState(false);
   // capture wall-clock once at mount; reading it during render is impure
   const [now] = useState(() => Date.now());
+  const terminalKeys = useTerminalKeys();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -57,20 +59,20 @@ export default function TicketsTable({
       if (
         r.due_date &&
         new Date(r.due_date).getTime() < now &&
-        r.status !== "issued" &&
-        r.status !== "return_no_repair"
+        !terminalKeys.has(r.status)
       )
         overdue++;
       receivable += Math.max(0, (r.price ?? 0) - (r.paid ?? 0));
     }
     return { mine, overdue, receivable };
-  }, [rows, currentUserId, now]);
+  }, [rows, currentUserId, now, terminalKeys]);
 
   const cols = useMemo<ColumnDef<TicketRow, any>[]>(
     () => [
       {
         accessorKey: "number",
         header: T.workflows.cols.number,
+        size: 90,
         cell: (c) => (
           <Link
             href={`/workflows/${c.row.original.id}`}
@@ -83,6 +85,7 @@ export default function TicketsTable({
       {
         accessorKey: "status",
         header: T.workflows.cols.status,
+        size: 130,
         cell: (c) => (
           <StatusBadge ticketId={c.row.original.id} status={c.row.original.status} />
         ),
@@ -90,11 +93,14 @@ export default function TicketsTable({
       {
         id: "group",
         header: T.workflows.cols.group,
+        size: 110,
         accessorFn: (r) => r.group?.name ?? "",
       },
       {
         id: "device",
         header: T.workflows.cols.device,
+        size: 180,
+        accessorFn: (r) => r.model?.name ?? "",
         cell: (c) => (
           <Box>
             <Typography variant="body2">{c.row.original.model?.name ?? "—"}</Typography>
@@ -111,6 +117,7 @@ export default function TicketsTable({
       {
         accessorKey: "malfunction",
         header: T.workflows.cols.malfunction,
+        size: 240,
         cell: (c) => (
           <Box sx={{ maxWidth: 220 }}>
             <Typography variant="body2">{c.row.original.malfunction ?? "—"}</Typography>
@@ -120,6 +127,7 @@ export default function TicketsTable({
       {
         id: "client",
         header: T.workflows.cols.client,
+        size: 180,
         accessorFn: (r) => clientName(r.client),
         cell: (c) => {
           const cl = c.row.original.client;
@@ -147,9 +155,10 @@ export default function TicketsTable({
         },
       },
       {
-        id: "created",
-        header: T.workflows.cols.created,
-        accessorFn: (r) => r.created_at,
+        id: "manager",
+        header: T.workflows.cols.manager,
+        size: 180,
+        accessorFn: (r) => r.manager?.full_name ?? "",
         cell: (c) => (
           <Box>
             <Typography variant="body2">
@@ -166,28 +175,33 @@ export default function TicketsTable({
       {
         id: "technician",
         header: T.workflows.cols.technician,
+        size: 140,
         accessorFn: (r) => r.technician?.full_name ?? "",
       },
       {
         accessorKey: "est_price",
         header: T.workflows.cols.estPrice,
+        size: 110,
         cell: (c) => formatUAH(c.row.original.est_price),
       },
       {
         id: "price",
         header: T.workflows.cols.price,
+        size: 110,
         accessorFn: (r) => r.price ?? 0,
         cell: (c) => formatUAH(c.row.original.price),
       },
       {
         id: "paid",
         header: T.workflows.cols.paid,
+        size: 110,
         accessorFn: (r) => r.paid ?? 0,
         cell: (c) => formatUAH(c.row.original.paid),
       },
       {
         id: "due",
         header: T.workflows.cols.due,
+        size: 160,
         accessorFn: (r) => r.due_date ?? "",
         cell: (c) => {
           const d = relativeDue(c.row.original.due_date);
@@ -219,14 +233,6 @@ export default function TicketsTable({
 
   return (
     <Box>
-      <Typography
-        variant="h5"
-        sx={{
-          fontWeight: 700,
-          mb: 2
-        }}>
-        {T.workflows.title}
-      </Typography>
       <SummaryCards
         mine={summary.mine}
         overdue={summary.overdue}
@@ -256,7 +262,7 @@ export default function TicketsTable({
           Всього — {filtered.length}
         </Typography>
       </Stack>
-      <DataTable data={filtered} columns={cols} dense />
+      <DataTable data={filtered} columns={cols} dense storageKey="tickets" />
       <CreateTicketDialog open={open} onClose={() => setOpen(false)} />
     </Box>
   );

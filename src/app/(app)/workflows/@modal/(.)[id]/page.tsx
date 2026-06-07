@@ -21,7 +21,7 @@ export default async function TicketModal({
   if (!data) notFound();
 
   return (
-    <RouteDialog>
+    <RouteDialog maxWidth="lg">
       <TicketCard
         embedded
         ticket={data.ticket as any}
@@ -30,6 +30,7 @@ export default async function TicketModal({
         payments={data.payments}
         profiles={data.profiles}
         catalog={data.catalog}
+        events={data.events}
       />
     </RouteDialog>
   );

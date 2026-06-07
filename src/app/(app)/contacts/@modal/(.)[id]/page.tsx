@@ -28,6 +28,8 @@ export default async function ContactModal({
         balance={data.balance}
         payments={data.payments}
         tickets={data.tickets}
+        phones={data.phones}
+        documents={data.documents}
       />
     </RouteDialog>
   );
