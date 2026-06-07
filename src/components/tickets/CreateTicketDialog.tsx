@@ -24,17 +24,17 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { createClient } from "@/lib/supabase/client";
 import { T } from "@/lib/constants";
+import { useStatuses } from "@/lib/status-context";
 import CascadingDeviceSelect, {
   type DeviceSelection,
+  emptyDeviceSelection,
+  resolveDeviceSelection,
 } from "@/components/tickets/CascadingDeviceSelect";
-import type { Contact, Profile } from "@/lib/types";
+import SnImeiField from "@/components/tickets/SnImeiField";
+import ClientAutocomplete from "@/components/tickets/ClientAutocomplete";
+import type { Contact, DeviceRow, Profile } from "@/lib/types";
 
-const emptyDevice: DeviceSelection = {
-  group_id: null,
-  brand_id: null,
-  model_id: null,
-  modification_id: null,
-};
+const FILL = "Заповніть це поле";
 
 export default function CreateTicketDialog({
   open,
@@ -49,6 +49,7 @@ export default function CreateTicketDialog({
   const supabase = createClient();
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const { statuses } = useStatuses();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -56,9 +57,8 @@ export default function CreateTicketDialog({
   const [manager, setManager] = useState<Profile | null>(null);
   const [technician, setTechnician] = useState<Profile | null>(null);
   const [client, setClient] = useState<Contact | null>(null);
-  const [device, setDevice] = useState<DeviceSelection>(emptyDevice);
+  const [device, setDevice] = useState<DeviceSelection>(emptyDeviceSelection);
   const [snImei, setSnImei] = useState("");
-  const [color, setColor] = useState("");
   const [deviceState, setDeviceState] = useState("");
   const [malfunction, setMalfunction] = useState("");
   const [complectation, setComplectation] = useState("");
@@ -68,6 +68,7 @@ export default function CreateTicketDialog({
   const [managerNotes, setManagerNotes] = useState("");
   const [prepayment, setPrepayment] = useState("");
   const [saving, setSaving] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -92,9 +93,8 @@ export default function CreateTicketDialog({
     setManager(null);
     setTechnician(null);
     setClient(null);
-    setDevice(emptyDevice);
+    setDevice(emptyDeviceSelection);
     setSnImei("");
-    setColor("");
     setDeviceState("");
     setMalfunction("");
     setComplectation("");
@@ -103,23 +103,89 @@ export default function CreateTicketDialog({
     setUrgent(false);
     setManagerNotes("");
     setPrepayment("");
+    setAttempted(false);
   }
 
+  // Apply an existing device picked from the SN/IMEI search: autofill catalog
+  // and owner so the SN stays rigidly tied to one device across the base.
+  function applyDevice(d: DeviceRow) {
+    setSnImei(d.sn_imei);
+    setDevice({
+      group_id: d.group_id,
+      group_name: d.group?.name ?? "",
+      brand_id: d.brand_id,
+      brand_name: d.brand?.name ?? "",
+      model_id: d.model_id,
+      model_name: d.model?.name ?? "",
+      modification_id: d.modification_id,
+      modification_name: d.modification?.name ?? "",
+    });
+    if (d.client) {
+      const c = d.client;
+      setClient(c);
+      setContacts((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
+    }
+  }
+
+  // Mandatory: manager, technician, SN/IMEI, group, brand, model, client, malfunction.
+  const canSubmit =
+    !!manager &&
+    !!technician &&
+    !!snImei.trim() &&
+    !!device.group_name.trim() &&
+    !!device.brand_name.trim() &&
+    !!device.model_name.trim() &&
+    !!client &&
+    !!malfunction.trim();
+
   async function submit(openAfter: boolean) {
+    if (!canSubmit) {
+      setAttempted(true);
+      return;
+    }
     setSaving(true);
+
+    // Resolve catalog ids (creating any manually-typed group/brand/model/mod).
+    const ids = await resolveDeviceSelection(supabase, device);
+
+    // Upsert the device by its unique SN/IMEI: reuse if it exists, else create.
+    let deviceId: number | null = null;
+    const { data: existingDevice } = await supabase
+      .from("devices")
+      .select("id")
+      .eq("sn_imei", snImei.trim())
+      .maybeSingle();
+    if (existingDevice) {
+      deviceId = existingDevice.id;
+    } else {
+      const { data: newDevice } = await supabase
+        .from("devices")
+        .insert({
+          sn_imei: snImei.trim(),
+          group_id: ids.group_id,
+          brand_id: ids.brand_id,
+          model_id: ids.model_id,
+          modification_id: ids.modification_id,
+          client_id: client?.id ?? null,
+        })
+        .select("id")
+        .single();
+      deviceId = newDevice?.id ?? null;
+    }
+
     const { data, error } = await supabase
       .from("tickets")
       .insert({
-        status: "new",
+        status: statuses.find((s) => s.is_default)?.key ?? statuses[0]?.key ?? "new",
         manager_id: manager?.id ?? null,
         technician_id: technician?.id ?? null,
         client_id: client?.id ?? null,
-        group_id: device.group_id,
-        brand_id: device.brand_id,
-        model_id: device.model_id,
-        modification_id: device.modification_id,
-        sn_imei: snImei || null,
-        color: color || null,
+        device_id: deviceId,
+        group_id: ids.group_id,
+        brand_id: ids.brand_id,
+        model_id: ids.model_id,
+        modification_id: ids.modification_id,
+        sn_imei: snImei.trim() || null,
         device_state: deviceState || null,
         malfunction: malfunction || null,
         complectation: complectation || null,
@@ -155,12 +221,19 @@ export default function CreateTicketDialog({
     if (openAfter) router.push(`/workflows/${data.id}`);
   }
 
+  // Clear the form whenever the dialog is dismissed (cancel / backdrop / X) so
+  // a fresh open starts empty.
+  function handleClose() {
+    reset();
+    onClose();
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
         Нова заявка
         <Box sx={{ flexGrow: 1 }} />
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={handleClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -171,33 +244,61 @@ export default function CreateTicketDialog({
             getOptionLabel={(o) => o.full_name}
             value={manager}
             onChange={(_, o) => setManager(o)}
-            renderInput={(p) => <TextField {...p} label="Менеджер" />}
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                label="Менеджер"
+                required
+                error={attempted && !manager}
+                helperText={attempted && !manager ? FILL : undefined}
+              />
+            )}
           />
           <Autocomplete
             options={profiles}
             getOptionLabel={(o) => o.full_name}
             value={technician}
             onChange={(_, o) => setTechnician(o)}
-            renderInput={(p) => <TextField {...p} label="Технік" />}
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                label="Технік"
+                required
+                error={attempted && !technician}
+                helperText={attempted && !technician ? FILL : undefined}
+              />
+            )}
+          />
+
+          <Divider textAlign="left">
+            <Typography variant="subtitle2">Клієнт</Typography>
+          </Divider>
+
+          <ClientAutocomplete
+            contacts={contacts}
+            value={client}
+            onChange={setClient}
+            onContactCreated={(c) =>
+              setContacts((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]))
+            }
+            required
+            error={attempted && !client}
+            helperText={attempted && !client ? FILL : undefined}
           />
 
           <Divider textAlign="left">
             <Typography variant="subtitle2">Пристрій</Typography>
           </Divider>
 
-          <TextField
-            label="Серійний номер / IMEI"
+          <SnImeiField
             value={snImei}
-            onChange={(e) => setSnImei(e.target.value)}
-            fullWidth
+            onChange={setSnImei}
+            onSelectDevice={applyDevice}
+            required
+            error={attempted && !snImei.trim()}
+            helperText={attempted && !snImei.trim() ? FILL : undefined}
           />
-          <CascadingDeviceSelect value={device} onChange={setDevice} />
-          <TextField
-            label="Колір"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            fullWidth
-          />
+          <CascadingDeviceSelect value={device} onChange={setDevice} showErrors={attempted} />
           <TextField
             label="Стан"
             value={deviceState}
@@ -206,24 +307,6 @@ export default function CreateTicketDialog({
             multiline
             minRows={2}
           />
-
-          <Divider textAlign="left">
-            <Typography variant="subtitle2">Клієнт</Typography>
-          </Divider>
-
-          <Autocomplete
-            options={contacts}
-            getOptionLabel={(o) =>
-              `${[o.first_name, o.last_name].filter(Boolean).join(" ")}${
-                o.phone ? ` — ${o.phone}` : ""
-              }`
-            }
-            value={client}
-            onChange={(_, o) => setClient(o)}
-            renderInput={(p) => (
-              <TextField {...p} label="Клієнт" placeholder="Ім'я або телефон" />
-            )}
-          />
           <TextField
             label="Несправність"
             value={malfunction}
@@ -231,6 +314,9 @@ export default function CreateTicketDialog({
             fullWidth
             multiline
             minRows={2}
+            required
+            error={attempted && !malfunction.trim()}
+            helperText={attempted && !malfunction.trim() ? FILL : undefined}
           />
           <TextField
             label="Комплектація"
@@ -278,7 +364,7 @@ export default function CreateTicketDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{T.common.cancel}</Button>
+        <Button onClick={handleClose}>{T.common.cancel}</Button>
         <Button onClick={() => submit(false)} disabled={saving} variant="outlined">
           {T.common.create}
         </Button>

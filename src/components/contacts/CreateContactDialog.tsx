@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -22,16 +22,43 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { createClient } from "@/lib/supabase/client";
+import PhoneListEditor, {
+  type PhoneDraft,
+  emptyPhone,
+  isPhoneDraftValid,
+} from "@/components/contacts/PhoneListEditor";
+import { splitStored, toE164, validatePhone } from "@/lib/phone";
 import { T } from "@/lib/constants";
+import type { Contact } from "@/lib/types";
+
+const FILL = "Заповніть це поле";
+
+// Build the initial phone list, optionally prefilled with a number passed in
+// from another flow (e.g. the ticket dialog's "+ КОНТАКТ"). The number is split
+// into country + national parts (a trunk "0" / country code is dropped from the
+// national part since the country selector carries the prefix).
+function initialPhones(defaultPhone?: string): PhoneDraft[] {
+  const row = { ...emptyPhone(), is_primary: true };
+  if (defaultPhone) {
+    const { country, national } = splitStored(defaultPhone);
+    row.country = country;
+    row.phone = national;
+  }
+  return [row];
+}
 
 export default function CreateContactDialog({
   open,
   onClose,
   defaultType = "person",
+  defaultPhone,
+  onCreated,
 }: {
   open: boolean;
   onClose: () => void;
   defaultType?: "person" | "organization";
+  defaultPhone?: string;
+  onCreated?: (contact: Contact) => void;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -42,7 +69,7 @@ export default function CreateContactDialog({
   const [isSupplier, setIsSupplier] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneList, setPhoneList] = useState<PhoneDraft[]>(initialPhones(defaultPhone));
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [discountCard, setDiscountCard] = useState("");
@@ -51,12 +78,18 @@ export default function CreateContactDialog({
   const [note, setNote] = useState("");
   const [tags, setTags] = useState("");
   const [saving, setSaving] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+
+  // When the dialog is (re)opened with a prefilled number, seed the phone row.
+  useEffect(() => {
+    if (open && defaultPhone) setPhoneList(initialPhones(defaultPhone));
+  }, [open, defaultPhone]);
 
   function reset() {
     setIsSupplier(false);
     setFirstName("");
     setLastName("");
-    setPhone("");
+    setPhoneList(initialPhones());
     setEmail("");
     setAddress("");
     setDiscountCard("");
@@ -64,39 +97,85 @@ export default function CreateContactDialog({
     setDiscountGoods("0");
     setNote("");
     setTags("");
+    setAttempted(false);
   }
 
+  // Phone is mandatory: need at least one valid number, and no invalid rows.
+  const phoneValid =
+    phoneList.some((p) => p.phone.trim() && validatePhone(p.phone, p.country)) &&
+    phoneList.every(isPhoneDraftValid);
+  const canSubmit = !!firstName.trim() && phoneValid;
+
   async function submit() {
-    if (!firstName.trim()) return;
+    if (!canSubmit) {
+      setAttempted(true);
+      return;
+    }
     setSaving(true);
-    await supabase.from("contacts").insert({
-      type,
-      is_supplier: isSupplier,
-      first_name: firstName,
-      last_name: lastName || null,
-      phone: phone || null,
-      email: email || null,
-      address: address || null,
-      discount_card: discountCard || null,
-      discount_service: Number(discountService) || 0,
-      discount_goods: Number(discountGoods) || 0,
-      note: note || null,
-      tags: tags
-        ? tags.split(",").map((t) => t.trim()).filter(Boolean)
-        : [],
-    });
+    const { data: created } = await supabase
+      .from("contacts")
+      .insert({
+        type,
+        is_supplier: isSupplier,
+        first_name: firstName,
+        last_name: lastName || null,
+        email: email || null,
+        address: address || null,
+        discount_card: discountCard || null,
+        discount_service: Number(discountService) || 0,
+        discount_goods: Number(discountGoods) || 0,
+        note: note || null,
+        tags: tags
+          ? tags.split(",").map((t) => t.trim()).filter(Boolean)
+          : [],
+      })
+      .select("id")
+      .single();
+
+    // Insert phone rows; the DB trigger mirrors the primary into contacts.phone.
+    if (created) {
+      const rows = phoneList
+        .filter((p) => p.phone.trim())
+        .map((p, i) => ({
+          contact_id: created.id,
+          phone: toE164(p.phone, p.country),
+          label: p.label.trim() || null,
+          is_primary: p.is_primary,
+          sort_order: i,
+        }));
+      if (rows.length && !rows.some((r) => r.is_primary)) rows[0].is_primary = true;
+      if (rows.length) await supabase.from("contact_phones").insert(rows);
+    }
+
+    // Hand the freshly created contact back to the caller (e.g. auto-select it
+    // as the ticket's client). Re-read so the mirrored phone is included.
+    if (created && onCreated) {
+      const { data: full } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("id", created.id)
+        .single();
+      if (full) onCreated(full as Contact);
+    }
+
     setSaving(false);
     reset();
     onClose();
     router.refresh();
   }
 
+  // Clear the form on any dismissal so a fresh open starts empty.
+  function handleClose() {
+    reset();
+    onClose();
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
         Новий контакт
         <Box sx={{ flexGrow: 1 }} />
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={handleClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -132,6 +211,8 @@ export default function CreateContactDialog({
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             fullWidth
+            error={attempted && !firstName.trim()}
+            helperText={attempted && !firstName.trim() ? FILL : undefined}
           />
           <TextField
             label="Прізвище"
@@ -139,13 +220,7 @@ export default function CreateContactDialog({
             onChange={(e) => setLastName(e.target.value)}
             fullWidth
           />
-          <TextField
-            label="Мобільний телефон"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+380"
-            fullWidth
-          />
+          <PhoneListEditor value={phoneList} onChange={setPhoneList} showRequired={attempted} />
           <TextField
             label="Email"
             type="email"
@@ -208,7 +283,7 @@ export default function CreateContactDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{T.common.cancel}</Button>
+        <Button onClick={handleClose}>{T.common.cancel}</Button>
         <Button variant="contained" onClick={submit} disabled={saving}>
           {T.common.create}
         </Button>

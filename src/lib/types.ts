@@ -2,13 +2,9 @@
 
 export type Role = "admin" | "manager" | "technician";
 
-export type TicketStatus =
-  | "draft"
-  | "new"
-  | "in_progress"
-  | "ready"
-  | "issued"
-  | "return_no_repair";
+// Ticket status keys are now data-driven (ticket_statuses table), so this is
+// an open string rather than a fixed union.
+export type TicketStatus = string;
 
 export type ItemKind = "labor" | "service" | "product";
 
@@ -63,10 +59,53 @@ export interface Contact {
   created_at: string;
 }
 
+export interface ContactPhone {
+  id: number;
+  contact_id: number;
+  phone: string;
+  label: string | null;
+  is_primary: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ContactDocument {
+  id: number;
+  contact_id: number;
+  path: string;
+  name: string | null;
+  size: number | null;
+  mime: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+// A device is a SN/IMEI-keyed registry row: one SN == one device, globally.
+export interface Device {
+  id: number;
+  sn_imei: string;
+  group_id: number | null;
+  brand_id: number | null;
+  model_id: number | null;
+  modification_id: number | null;
+  client_id: number | null;
+  created_at: string;
+}
+
+// Device joined with catalog names + owner, used for the SN/IMEI search/autofill.
+export interface DeviceRow extends Device {
+  group?: { name: string } | null;
+  brand?: { name: string } | null;
+  model?: { name: string } | null;
+  modification?: { name: string } | null;
+  client?: Contact | null;
+}
+
 export interface Ticket {
   id: number;
   number: string;
   status: TicketStatus;
+  device_id: number | null;
   manager_id: string | null;
   technician_id: string | null;
   client_id: number | null;
@@ -138,10 +177,52 @@ export interface ContactBalance {
   balance: number;
 }
 
+export interface TicketStatusRow {
+  key: string;
+  label: string;
+  color: string;
+  bg: string;
+  sort_order: number;
+  is_terminal: boolean;
+  is_default: boolean;
+}
+
+export interface StatusTransition {
+  from_key: string;
+  to_key: string;
+}
+
+export type TicketEventKind =
+  | "created"
+  | "status_changed"
+  | "item_added"
+  | "item_removed"
+  | "invoice_added"
+  | "payment_added"
+  | "comment"
+  | "attachment";
+
+export interface TicketEvent {
+  id: number;
+  ticket_id: number;
+  actor_id: string | null;
+  kind: TicketEventKind;
+  summary: string;
+  meta: Record<string, unknown>;
+  created_at: string;
+}
+
+// Joined row used by the timeline (event + actor name)
+export interface TicketEventRow extends TicketEvent {
+  actor?: { full_name: string } | null;
+}
+
 // Joined row used by the workflows table (ticket + names + totals)
 export interface TicketRow extends Ticket {
   group?: { name: string } | null;
+  brand?: { name: string } | null;
   model?: { name: string } | null;
+  modification?: { name: string } | null;
   client?: Pick<Contact, "id" | "first_name" | "last_name" | "phone"> | null;
   manager?: { full_name: string } | null;
   technician?: { full_name: string } | null;
