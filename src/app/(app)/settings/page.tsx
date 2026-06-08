@@ -5,6 +5,8 @@ import type {
   ServiceCatalogItem,
   TicketStatusRow,
   StatusTransition,
+  DocumentTemplate,
+  CompanySettings,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -32,12 +34,36 @@ export default async function SettingsPage() {
     .from("status_transitions")
     .select("*");
 
+  const { data: templates } = await supabase
+    .from("document_templates")
+    .select("*")
+    .order("created_at");
+
+  const { data: company } = await supabase
+    .from("company_settings")
+    .select("*")
+    .eq("id", 1)
+    .single();
+
+  const companyFallback: CompanySettings = {
+    id: 1,
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    logo_path: null,
+    additional_info: "",
+    updated_at: new Date().toISOString(),
+  };
+
   return (
     <SettingsView
       groups={(groups ?? []) as Group[]}
       services={(services ?? []) as ServiceCatalogItem[]}
       statuses={(statuses ?? []) as TicketStatusRow[]}
       transitions={(transitions ?? []) as StatusTransition[]}
+      templates={(templates ?? []) as DocumentTemplate[]}
+      company={(company ?? companyFallback) as CompanySettings}
     />
   );
 }

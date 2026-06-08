@@ -1,7 +1,20 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { Box, Button, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  ListSubheader,
+  Menu,
+  MenuItem,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import PrintIcon from "@mui/icons-material/Print";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GeneralTab from "@/components/tickets/tabs/GeneralTab";
 import ItemsTab from "@/components/tickets/tabs/ItemsTab";
@@ -9,7 +22,10 @@ import InvoicesTab from "@/components/tickets/tabs/InvoicesTab";
 import TicketTimeline from "@/components/tickets/TicketTimeline";
 import { T } from "@/lib/constants";
 import { formatUAH } from "@/lib/money";
+import { renderTemplate, type TemplateContext } from "@/lib/document-variables";
+import { printHtml } from "@/lib/print";
 import type {
+  DocumentTemplate,
   Invoice,
   Payment,
   Profile,
@@ -28,6 +44,73 @@ const CARD_H = { xs: "auto", md: "min(880px, calc(100vh - 170px))" } as const;
 const HEADER_H = 52;
 const FOOTER_H = 69;
 
+// Document kinds offered in the print dropdown, in display order. "other"
+// templates are intentionally excluded from the ticket print menu.
+const PRINTABLE_KINDS = [
+  "acceptance_receipt",
+  "completion_act",
+  "invoice",
+] as const;
+
+function PrintMenu({
+  templates,
+  ticket,
+  items,
+  paid,
+  company,
+}: {
+  templates: DocumentTemplate[];
+  ticket: TicketRow;
+  items: TicketItem[];
+  paid: number;
+  company: TemplateContext["company"];
+}) {
+  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+
+  const printable = templates.filter((t) =>
+    (PRINTABLE_KINDS as readonly string[]).includes(t.kind),
+  );
+
+  function handlePrint(template: DocumentTemplate) {
+    setAnchor(null);
+    const html = renderTemplate(template.content, { ticket, items, paid, company });
+    printHtml(`${T.documents.kinds[template.kind]} — №${ticket.number}`, html);
+  }
+
+  return (
+    <>
+      <Tooltip title={T.documents.print}>
+        <Button
+          variant="outlined"
+          onClick={(e) => setAnchor(e.currentTarget)}
+          sx={{ minWidth: 0, px: 1.5 }}
+        >
+          <PrintIcon sx={{ fontSize: "1.53rem" }} />
+        </Button>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
+        {printable.length === 0 && (
+          <MenuItem disabled>{T.documents.noTemplates}</MenuItem>
+        )}
+        {PRINTABLE_KINDS.flatMap((kind) => {
+          const group = printable.filter((t) => t.kind === kind);
+          if (group.length === 0) return [];
+          return [
+            <ListSubheader key={`h-${kind}`} sx={{ lineHeight: "32px" }}>
+              {T.documents.kinds[kind]}
+            </ListSubheader>,
+            ...group.map((t) => (
+              <MenuItem key={t.id} onClick={() => handlePrint(t)} sx={{ pl: 3 }}>
+                {t.name}
+              </MenuItem>
+            )),
+          ];
+        })}
+      </Menu>
+    </>
+  );
+}
+
 export default function TicketCard({
   ticket,
   items,
@@ -36,6 +119,8 @@ export default function TicketCard({
   profiles,
   catalog,
   events,
+  templates = [],
+  company = null,
   embedded = false,
 }: {
   ticket: TicketRow;
@@ -45,6 +130,8 @@ export default function TicketCard({
   profiles: Profile[];
   catalog: ServiceCatalogItem[];
   events: TicketEventRow[];
+  templates?: DocumentTemplate[];
+  company?: TemplateContext["company"] | null;
   embedded?: boolean;
 }) {
   const [tab, setTab] = useState(0);
@@ -175,6 +262,13 @@ export default function TicketCard({
               </Typography>
             </Stack>
             <Box sx={{ flexGrow: 1 }} />
+            <PrintMenu
+              templates={templates}
+              ticket={ticket}
+              items={items}
+              paid={paid}
+              company={company ?? undefined}
+            />
             {canSave && (
               <Button variant="contained" onClick={handleSave} disabled={saving}>
                 {T.common.save}

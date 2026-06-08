@@ -5,6 +5,7 @@ import {
   AppBar,
   Avatar,
   Box,
+  Divider,
   Drawer,
   IconButton,
   List,
@@ -20,11 +21,12 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { T } from "@/lib/constants";
 
-const WIDTH = 64;
+const WIDTH = 88;
 
 const NAV = [
   { href: "/workflows", label: T.nav.workflows, icon: <AssignmentIcon /> },
@@ -42,7 +44,8 @@ export default function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Title for the current section, derived from the nav entry that matches the
   // active route (so pages no longer render their own heading).
@@ -54,52 +57,128 @@ export default function AppShell({
     router.refresh();
   }
 
+  const drawerContent = (
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <Toolbar sx={{ minHeight: 56, px: 0, justifyContent: "center" }}>
+        <Avatar
+          variant="rounded"
+          sx={{ bgcolor: "primary.main", width: 36, height: 36 }}
+        >
+          R
+        </Avatar>
+      </Toolbar>
+      <List sx={{ flexGrow: 1, pt: 1 }}>
+        {NAV.map((item) => {
+          const active = pathname.startsWith(item.href);
+          return (
+            <ListItemButton
+              key={item.href}
+              component={Link}
+              href={item.href}
+              onClick={() => setMobileOpen(false)}
+              sx={{
+                flexDirection: "column",
+                gap: 0.5,
+                py: 1.25,
+                color: active ? "primary.main" : "text.secondary",
+                bgcolor: active ? "action.selected" : "transparent",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+            >
+              <ListItemIcon
+                sx={{ minWidth: 0, color: "inherit", justifyContent: "center" }}
+              >
+                {item.icon}
+              </ListItemIcon>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: 11,
+                  lineHeight: 1.2,
+                  textAlign: "center",
+                  fontWeight: active ? 600 : 400,
+                }}
+              >
+                {item.label}
+              </Typography>
+            </ListItemButton>
+          );
+        })}
+      </List>
+      <Box sx={{ p: 1, display: "flex", justifyContent: "center" }}>
+        <Tooltip title={userName} placement="right">
+          <IconButton
+            onClick={(e) => setUserAnchor(e.currentTarget)}
+            size="small"
+          >
+            <Avatar sx={{ bgcolor: "primary.main", width: 36, height: 36 }}>
+              {userName.charAt(0).toUpperCase()}
+            </Avatar>
+          </IconButton>
+        </Tooltip>
+        <Menu
+          anchorEl={userAnchor}
+          open={Boolean(userAnchor)}
+          onClose={() => setUserAnchor(null)}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+        >
+          <MenuItem disabled sx={{ opacity: "1 !important" }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {userName}
+            </Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={logout}>
+            <ListItemIcon>
+              <LogoutIcon fontSize="small" />
+            </ListItemIcon>
+            Вийти
+          </MenuItem>
+        </Menu>
+      </Box>
+    </Box>
+  );
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: WIDTH,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: WIDTH,
-            boxSizing: "border-box",
-            bgcolor: "#1f2733",
-            color: "#fff",
-            border: 0,
-          },
-        }}
+      <Box
+        component="nav"
+        sx={{ width: { sm: WIDTH }, flexShrink: { sm: 0 } }}
       >
-        <Toolbar sx={{ minHeight: 56, px: 0, justifyContent: "center" }}>
-          <Avatar sx={{ bgcolor: "#f5a623", width: 36, height: 36 }}>R</Avatar>
-        </Toolbar>
-        <List>
-          {NAV.map((item) => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Tooltip key={item.href} title={item.label} placement="right">
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  sx={{
-                    justifyContent: "center",
-                    py: 1.5,
-                    color: active ? "#fff" : "#9aa4b2",
-                    bgcolor: active ? "rgba(245,166,35,0.15)" : "transparent",
-                    borderLeft: active
-                      ? "3px solid #f5a623"
-                      : "3px solid transparent",
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 0, color: "inherit" }}>
-                    {item.icon}
-                  </ListItemIcon>
-                </ListItemButton>
-              </Tooltip>
-            );
-          })}
-        </List>
-      </Drawer>
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: "block", sm: "none" },
+            "& .MuiDrawer-paper": {
+              width: WIDTH,
+              boxSizing: "border-box",
+              bgcolor: "#fff",
+              borderRight: "1px solid #e0e0e0",
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          open
+          sx={{
+            display: { xs: "none", sm: "block" },
+            "& .MuiDrawer-paper": {
+              width: WIDTH,
+              boxSizing: "border-box",
+              bgcolor: "#fff",
+              borderRight: "1px solid #e0e0e0",
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      </Box>
       <Box
         sx={{
           flexGrow: 1,
@@ -114,33 +193,17 @@ export default function AppShell({
           elevation={0}
           sx={{ borderBottom: "1px solid #e0e0e0", bgcolor: "#fff" }}
         >
-          <Toolbar sx={{ minHeight: 56, gap: 2 }}>
+          <Toolbar sx={{ minHeight: 56, gap: 1 }}>
+            <IconButton
+              edge="start"
+              onClick={() => setMobileOpen(true)}
+              sx={{ display: { sm: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1.56rem" }}>
               {pageTitle}
             </Typography>
-            <Box sx={{ flexGrow: 1 }} />
-            <Typography variant="body2" sx={{
-              color: "text.secondary"
-            }}>
-              {userName}
-            </Typography>
-            <IconButton onClick={(e) => setAnchor(e.currentTarget)} size="small">
-              <Avatar sx={{ bgcolor: "#f5a623", width: 32, height: 32 }}>
-                {userName.charAt(0).toUpperCase()}
-              </Avatar>
-            </IconButton>
-            <Menu
-              anchorEl={anchor}
-              open={Boolean(anchor)}
-              onClose={() => setAnchor(null)}
-            >
-              <MenuItem onClick={logout}>
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" />
-                </ListItemIcon>
-                Вийти
-              </MenuItem>
-            </Menu>
           </Toolbar>
         </AppBar>
 

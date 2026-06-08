@@ -27,12 +27,14 @@
     "@supabase/supabase-js": "^2.47.10",
     "@tanstack/react-table": "^8.20.5",
     "@tanstack/react-virtual": "^3.14.2",
+    "@tinymce/tinymce-react": "^6.3.0",
     "dayjs": "^1.11.13",
     "libphonenumber-js": "^1.13.6",
     "next": "16.2.7",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.54.0",
+    "tinymce": "^8.6.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

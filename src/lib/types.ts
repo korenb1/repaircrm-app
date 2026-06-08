@@ -192,6 +192,32 @@ export interface StatusTransition {
   to_key: string;
 }
 
+export type DocumentTemplateKind =
+  | "acceptance_receipt"
+  | "completion_act"
+  | "invoice"
+  | "other";
+
+export interface DocumentTemplate {
+  id: number;
+  name: string;
+  kind: DocumentTemplateKind;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanySettings {
+  id: number;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  logo_path: string | null;
+  additional_info: string;
+  updated_at: string;
+}
+
 export type TicketEventKind =
   | "created"
   | "status_changed"
@@ -223,7 +249,10 @@ export interface TicketRow extends Ticket {
   brand?: { name: string } | null;
   model?: { name: string } | null;
   modification?: { name: string } | null;
-  client?: Pick<Contact, "id" | "first_name" | "last_name" | "phone"> | null;
+  client?: Pick<
+    Contact,
+    "id" | "first_name" | "last_name" | "phone" | "email" | "address"
+  > | null;
   manager?: { full_name: string } | null;
   technician?: { full_name: string } | null;
   price?: number;
