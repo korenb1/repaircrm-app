@@ -111,7 +111,7 @@ export default function AppShell({
         })}
       </List>
       <Box sx={{ p: 1, display: "flex", justifyContent: "center" }}>
-        <Tooltip title={userName} placement="right">
+        <Tooltip title={userName} placement="right" arrow>
           <IconButton
             onClick={(e) => setUserAnchor(e.currentTarget)}
             size="small"

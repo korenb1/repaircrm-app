@@ -15,7 +15,7 @@ export interface Tech {
 export default function TechnicianAvatars({
   techs,
   max = 3,
-  size = 36,
+  size = 32,
 }: {
   techs: Tech[];
   max?: number;
@@ -44,7 +44,7 @@ export default function TechnicianAvatars({
   return (
     <Box sx={{ display: "flex", alignItems: "center" }}>
       {shown.map((t, i) => (
-        <Tooltip key={t.id} title={t.name} placement="top">
+        <Tooltip key={t.id} title={t.name} placement="top" arrow>
           <Avatar
             src={avatarUrl(t.avatarPath)}
             sx={{ ...bumpSx, ml: i === 0 ? 0 : -1, zIndex: i }}
