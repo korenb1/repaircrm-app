@@ -18,11 +18,15 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, avatar_path")
     .eq("id", user.id)
     .single();
 
   const userName = profile?.full_name ?? user.email ?? "Користувач";
+  const avatarUrl = profile?.avatar_path
+    ? supabase.storage.from("avatars").getPublicUrl(profile.avatar_path).data
+        .publicUrl
+    : null;
 
   const { data: statuses } = await supabase
     .from("ticket_statuses")
@@ -37,7 +41,9 @@ export default async function AppLayout({
       statuses={(statuses ?? []) as TicketStatusRow[]}
       transitions={(transitions ?? []) as StatusTransition[]}
     >
-      <AppShell userName={userName}>{children}</AppShell>
+      <AppShell userName={userName} avatarUrl={avatarUrl}>
+        {children}
+      </AppShell>
     </StatusProvider>
   );
 }

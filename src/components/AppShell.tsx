@@ -21,6 +21,7 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -37,9 +38,11 @@ const NAV = [
 export default function AppShell({
   children,
   userName,
+  avatarUrl,
 }: {
   children: React.ReactNode;
   userName: string;
+  avatarUrl?: string | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -49,7 +52,9 @@ export default function AppShell({
 
   // Title for the current section, derived from the nav entry that matches the
   // active route (so pages no longer render their own heading).
-  const pageTitle = NAV.find((n) => pathname.startsWith(n.href))?.label ?? "";
+  const pageTitle =
+    NAV.find((n) => pathname.startsWith(n.href))?.label ??
+    (pathname.startsWith("/profile") ? T.nav.profile : "");
 
   async function logout() {
     await supabase.auth.signOut();
@@ -111,7 +116,10 @@ export default function AppShell({
             onClick={(e) => setUserAnchor(e.currentTarget)}
             size="small"
           >
-            <Avatar sx={{ bgcolor: "primary.main", width: 36, height: 36 }}>
+            <Avatar
+              src={avatarUrl ?? undefined}
+              sx={{ bgcolor: "primary.main", width: 36, height: 36 }}
+            >
               {userName.charAt(0).toUpperCase()}
             </Avatar>
           </IconButton>
@@ -127,6 +135,20 @@ export default function AppShell({
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {userName}
             </Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem
+            component={Link}
+            href="/profile"
+            onClick={() => {
+              setUserAnchor(null);
+              setMobileOpen(false);
+            }}
+          >
+            <ListItemIcon>
+              <PersonIcon fontSize="small" />
+            </ListItemIcon>
+            {T.nav.profile}
           </MenuItem>
           <Divider />
           <MenuItem onClick={logout}>

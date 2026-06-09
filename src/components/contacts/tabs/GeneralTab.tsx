@@ -3,9 +3,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Grid, TextField, Typography } from "@mui/material";
 import { createClient } from "@/lib/supabase/client";
-import PhoneListEditor, { type PhoneDraft } from "@/components/contacts/PhoneListEditor";
-import { splitStored, toE164 } from "@/lib/phone";
+import PhoneListEditor, {
+  type PhoneDraft,
+  isPhoneDraftValid,
+} from "@/components/contacts/PhoneListEditor";
+import { splitStored, toE164, validatePhone } from "@/lib/phone";
 import type { Contact, ContactPhone } from "@/lib/types";
+
+const FILL = "Заповніть це поле";
 
 export default function GeneralTab({
   contact,
@@ -34,8 +39,19 @@ export default function GeneralTab({
   const [discountGoods, setDiscountGoods] = useState(String(contact.discount_goods ?? 0));
   const [note, setNote] = useState(contact.note ?? "");
   const [tags, setTags] = useState((contact.tags ?? []).join(", "));
+  const [attempted, setAttempted] = useState(false);
+
+  // First name and at least one valid phone are mandatory.
+  const phoneValid =
+    phoneList.some((p) => p.phone.trim() && validatePhone(p.phone, p.country)) &&
+    phoneList.every(isPhoneDraftValid);
+  const valid = !!firstName.trim() && phoneValid;
 
   async function save() {
+    if (!valid) {
+      setAttempted(true);
+      return;
+    }
     await supabase
       .from("contacts")
       .update({
@@ -78,7 +94,15 @@ export default function GeneralTab({
   return (
     <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField label="Ім'я" value={firstName} onChange={(e) => setFirstName(e.target.value)} fullWidth />
+          <TextField
+            label="Ім'я"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            fullWidth
+            required
+            error={attempted && !firstName.trim()}
+            helperText={attempted && !firstName.trim() ? FILL : undefined}
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Прізвище" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth />
@@ -90,7 +114,7 @@ export default function GeneralTab({
           <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
             Телефони
           </Typography>
-          <PhoneListEditor value={phoneList} onChange={setPhoneList} />
+          <PhoneListEditor value={phoneList} onChange={setPhoneList} showRequired={attempted} />
         </Grid>
         <Grid size={12}>
           <TextField label="Адреса" value={address} onChange={(e) => setAddress(e.target.value)} fullWidth />

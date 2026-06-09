@@ -9,7 +9,7 @@ export const ITEM_KINDS: Record<ItemKind, string> = {
 // UI string table — single source of Ukrainian labels.
 export const T = {
   appName: "RepairCRM",
-  nav: { workflows: "Заявки", contacts: "Контакти", settings: "Налаштування" },
+  nav: { workflows: "Заявки", contacts: "Контакти", settings: "Налаштування", profile: "Профіль" },
   login: {
     title: "Вхід",
     email: "Email",
@@ -54,13 +54,36 @@ export const T = {
   },
   ticket: {
     tabs: { general: "Загальна інформація", items: "Послуги та товари", invoices: "Рахунки та оплати", history: "Історія" },
+    items: {
+      deleteTitle: "Видалити позицію",
+      deleteConfirm: "Видалити «{name}»?",
+    },
   },
   contactCard: {
     tabs: { general: "Загальна", balance: "Баланс", tickets: "Заявки", devices: "Пристрої", documents: "Документи" },
   },
   settings: {
     title: "Налаштування",
-    tabs: { company: "Компанія", catalog: "Каталог пристроїв", services: "Послуги та товари", statuses: "Статуси", documents: "Шаблони документів" },
+    tabs: { company: "Компанія", catalog: "Каталог пристроїв", services: "Послуги та товари", statuses: "Статуси", documents: "Шаблони документів", users: "Користувачі" },
+    users: {
+      heading: "Створити користувача",
+      email: "Email",
+      password: "Пароль",
+      fullName: "Повне ім'я",
+      create: "Створити користувача",
+      created: "Користувача створено",
+      listHeading: "Користувачі",
+      cols: { name: "Ім'я", email: "Email", role: "Роль" },
+      roles: { admin: "Адміністратор", manager: "Менеджер", technician: "Технік" },
+      errors: {
+        invalidEmail: "Невірний email",
+        tooShort: "Пароль має містити щонайменше 6 символів",
+        nameRequired: "Вкажіть ім'я",
+        exists: "Користувач з таким email вже існує",
+        forbidden: "Недостатньо прав",
+        generic: "Не вдалося створити користувача",
+      },
+    },
     company: {
       name: "Назва компанії",
       address: "Адреса",
@@ -130,12 +153,35 @@ export const T = {
       other: "Інше",
     },
   },
+  profile: {
+    title: "Профіль",
+    email: "Email",
+    fullName: "Повне ім'я",
+    phone: "Телефон",
+    telegram: "Telegram",
+    photo: "Фото профілю",
+    uploadPhoto: "Завантажити фото",
+    removePhoto: "Видалити фото",
+    saved: "Збережено",
+    password: {
+      heading: "Зміна пароля",
+      current: "Поточний пароль",
+      new: "Новий пароль",
+      confirm: "Підтвердження пароля",
+      change: "Змінити пароль",
+      changed: "Пароль змінено",
+      wrong: "Невірний поточний пароль",
+      mismatch: "Паролі не збігаються",
+      tooShort: "Пароль має містити щонайменше 6 символів",
+    },
+  },
   common: {
     save: "Зберегти",
     create: "Створити",
     createAndOpen: "Створити й відкрити",
     cancel: "Скасувати",
     add: "Додати",
+    delete: "Видалити",
     notAssigned: "Не призначено",
   },
 } as const;

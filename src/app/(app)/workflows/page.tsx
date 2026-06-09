@@ -14,10 +14,13 @@ export default async function WorkflowsPage() {
     .select(
       `*,
        group:groups(name),
+       brand:brands(name),
        model:models(name),
+       modification:modifications(name),
        client:contacts(id,first_name,last_name,phone),
-       manager:profiles!tickets_manager_id_fkey(full_name),
-       technician:profiles!tickets_technician_id_fkey(full_name)`,
+       manager:profiles!tickets_manager_id_fkey(id,full_name,avatar_path),
+       technician:profiles!tickets_technician_id_fkey(id,full_name,avatar_path),
+       items:ticket_items(technician:profiles(id,full_name,avatar_path))`,
     )
     .order("id", { ascending: false });
 

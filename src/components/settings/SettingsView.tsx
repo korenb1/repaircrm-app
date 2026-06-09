@@ -6,6 +6,7 @@ import ServiceCatalogManager from "@/components/settings/ServiceCatalogManager";
 import StatusManager from "@/components/settings/StatusManager";
 import DocumentTemplatesManager from "@/components/settings/DocumentTemplatesManager";
 import CompanySettingsManager from "@/components/settings/CompanySettingsManager";
+import UsersManager from "@/components/settings/UsersManager";
 import { T } from "@/lib/constants";
 import type {
   Group,
@@ -14,6 +15,7 @@ import type {
   StatusTransition,
   DocumentTemplate,
   CompanySettings,
+  AdminUser,
 } from "@/lib/types";
 
 export default function SettingsView({
@@ -23,6 +25,8 @@ export default function SettingsView({
   transitions,
   templates,
   company,
+  isAdmin = false,
+  users = [],
 }: {
   groups: Group[];
   services: ServiceCatalogItem[];
@@ -30,6 +34,8 @@ export default function SettingsView({
   transitions: StatusTransition[];
   templates: DocumentTemplate[];
   company: CompanySettings;
+  isAdmin?: boolean;
+  users?: AdminUser[];
 }) {
   const [tab, setTab] = useState(0);
 
@@ -49,6 +55,7 @@ export default function SettingsView({
           <Tab label={T.settings.tabs.services} />
           <Tab label={T.settings.tabs.statuses} />
           <Tab label={T.settings.tabs.documents} />
+          {isAdmin && <Tab label={T.settings.tabs.users} />}
         </Tabs>
         <Box sx={{ p: 2 }}>
           {tab === 0 && <CompanySettingsManager company={company} />}
@@ -58,6 +65,7 @@ export default function SettingsView({
             <StatusManager statuses={statuses} transitions={transitions} />
           )}
           {tab === 4 && <DocumentTemplatesManager templates={templates} />}
+          {isAdmin && tab === 5 && <UsersManager users={users} />}
         </Box>
       </Paper>
     </Box>

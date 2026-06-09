@@ -8,6 +8,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import SummaryCards from "@/components/ui/SummaryCards";
+import UserAvatar from "@/components/ui/UserAvatar";
+import TechnicianAvatars, { type Tech } from "@/components/ui/TechnicianAvatars";
 import CreateTicketDialog from "@/components/tickets/CreateTicketDialog";
 import { useTerminalKeys } from "@/lib/status-context";
 import { T } from "@/lib/constants";
@@ -17,6 +19,24 @@ import type { TicketRow } from "@/lib/types";
 function clientName(c: TicketRow["client"]) {
   if (!c) return "";
   return [c.first_name, c.last_name].filter(Boolean).join(" ");
+}
+
+// Unique technicians for a ticket: gathered from its line items; falls back to
+// the ticket-level technician when no line has one assigned.
+function rowTechs(r: TicketRow): Tech[] {
+  const map = new Map<string, Tech>();
+  for (const it of r.items ?? []) {
+    const t = it.technician;
+    if (t && !map.has(t.id))
+      map.set(t.id, { id: t.id, name: t.full_name, avatarPath: t.avatar_path });
+  }
+  if (map.size === 0 && r.technician)
+    map.set(r.technician.id, {
+      id: r.technician.id,
+      name: r.technician.full_name,
+      avatarPath: r.technician.avatar_path,
+    });
+  return [...map.values()];
 }
 
 export default function TicketsTable({
@@ -39,6 +59,7 @@ export default function TicketsTable({
       [
         r.number,
         r.group?.name,
+        r.brand?.name,
         r.model?.name,
         r.sn_imei,
         r.malfunction,
@@ -100,10 +121,14 @@ export default function TicketsTable({
         id: "device",
         header: T.workflows.cols.device,
         size: 180,
-        accessorFn: (r) => r.model?.name ?? "",
-        cell: (c) => (
+        accessorFn: (r) =>
+          [r.brand?.name, r.model?.name].filter(Boolean).join(" "),
+        cell: (c) => {
+          const r = c.row.original;
+          const label = [r.brand?.name, r.model?.name].filter(Boolean).join(" ");
+          return (
           <Box>
-            <Typography variant="body2">{c.row.original.model?.name ?? "—"}</Typography>
+            <Typography variant="body2">{label || "—"}</Typography>
             {c.row.original.sn_imei && (
               <Typography variant="caption" sx={{
                 color: "text.secondary"
@@ -112,7 +137,8 @@ export default function TicketsTable({
               </Typography>
             )}
           </Box>
-        ),
+          );
+        },
       },
       {
         accessorKey: "malfunction",
@@ -157,26 +183,23 @@ export default function TicketsTable({
       {
         id: "manager",
         header: T.workflows.cols.manager,
-        size: 180,
+        size: 140,
         accessorFn: (r) => r.manager?.full_name ?? "",
-        cell: (c) => (
-          <Box>
-            <Typography variant="body2">
-              {c.row.original.manager?.full_name ?? "—"}
-            </Typography>
-            <Typography variant="caption" sx={{
-              color: "text.secondary"
-            }}>
-              {formatDateTime(c.row.original.created_at)}
-            </Typography>
-          </Box>
-        ),
+        cell: (c) => {
+          const m = c.row.original.manager;
+          return m ? (
+            <UserAvatar name={m.full_name} avatarPath={m.avatar_path} />
+          ) : (
+            "—"
+          );
+        },
       },
       {
         id: "technician",
         header: T.workflows.cols.technician,
         size: 140,
-        accessorFn: (r) => r.technician?.full_name ?? "",
+        accessorFn: (r) => rowTechs(r).map((t) => t.name).join(", "),
+        cell: (c) => <TechnicianAvatars techs={rowTechs(c.row.original)} />,
       },
       {
         accessorKey: "est_price",

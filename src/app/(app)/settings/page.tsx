@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import SettingsView from "@/components/settings/SettingsView";
 import type {
   Group,
@@ -7,12 +8,45 @@ import type {
   StatusTransition,
   DocumentTemplate,
   CompanySettings,
+  AdminUser,
+  Profile,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: me } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
+    : { data: null };
+  const isAdmin = me?.role === "admin";
+
+  let users: AdminUser[] = [];
+  if (isAdmin) {
+    const admin = createAdminClient();
+    const [{ data: authData }, { data: profiles }] = await Promise.all([
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+      admin.from("profiles").select("*"),
+    ]);
+    const byId = new Map(
+      ((profiles ?? []) as Profile[]).map((p) => [p.id, p]),
+    );
+    users = (authData?.users ?? []).map((u) => {
+      const p = byId.get(u.id);
+      return {
+        id: u.id,
+        email: u.email ?? "",
+        full_name: p?.full_name ?? "",
+        role: p?.role ?? "technician",
+        created_at: u.created_at,
+      };
+    });
+    users.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
 
   const { data: groups } = await supabase
     .from("groups")
@@ -64,6 +98,8 @@ export default async function SettingsPage() {
       transitions={(transitions ?? []) as StatusTransition[]}
       templates={(templates ?? []) as DocumentTemplate[]}
       company={(company ?? companyFallback) as CompanySettings}
+      isAdmin={isAdmin}
+      users={users}
     />
   );
 }

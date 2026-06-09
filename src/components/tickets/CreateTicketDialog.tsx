@@ -217,8 +217,10 @@ export default function CreateTicketDialog({
     setSaving(false);
     reset();
     onClose();
-    router.refresh();
+    // Navigate first (when opening the new ticket), then refresh last so the
+    // list refetch isn't aborted by the subsequent push navigation.
     if (openAfter) router.push(`/workflows/${data.id}`);
+    router.refresh();
   }
 
   // Clear the form whenever the dialog is dismissed (cancel / backdrop / X) so

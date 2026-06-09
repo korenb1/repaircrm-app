@@ -5,6 +5,11 @@ import {
   Autocomplete,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Grid,
   IconButton,
   Stack,
@@ -15,6 +20,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
 import { T, ITEM_KINDS } from "@/lib/constants";
 import { formatUAH } from "@/lib/money";
@@ -45,10 +51,16 @@ export default function ItemsTab({
   const [qty, setQty] = useState("1");
   const [concl, setConcl] = useState(conclusion ?? "");
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<TicketItem | null>(null);
 
   const subtotal = useMemo(
     () => items.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0),
     [items],
+  );
+
+  const profileById = useMemo(
+    () => new Map(profiles.map((p) => [p.id, p])),
+    [profiles],
   );
 
   async function addItem() {
@@ -72,6 +84,7 @@ export default function ItemsTab({
 
   async function removeItem(id: number) {
     await supabase.from("ticket_items").delete().eq("id", id);
+    setPendingDelete(null);
     router.refresh();
   }
 
@@ -117,16 +130,37 @@ export default function ItemsTab({
         cell: (c) => formatUAH(Number(c.row.original.price) * Number(c.row.original.qty)),
       },
       {
+        id: "technician",
+        header: "Технік",
+        cell: (c) => {
+          const t = c.row.original.technician_id
+            ? profileById.get(c.row.original.technician_id)
+            : null;
+          return t ? (
+            <UserAvatar name={t.full_name} avatarPath={t.avatar_path} />
+          ) : (
+            "—"
+          );
+        },
+      },
+      {
         id: "actions",
         header: "",
+        size: 64,
+        enableResizing: false,
         cell: (c) => (
-          <IconButton size="small" onClick={() => removeItem(c.row.original.id)}>
+          <IconButton
+            size="small"
+            color="error"
+            title={T.common.delete}
+            onClick={() => setPendingDelete(c.row.original)}
+          >
             <DeleteIcon fontSize="small" />
           </IconButton>
         ),
       },
     ],
-    [],
+    [profileById],
   );
 
   return (
@@ -205,7 +239,7 @@ export default function ItemsTab({
           </Button>
         </Grid>
       </Grid>
-      <DataTable data={items} columns={cols} dense maxHeight={360} emptyText="Немає позицій" />
+      <DataTable data={items} columns={cols} dense maxHeight={360} emptyText="Немає позицій" storageKey="ticket-items" />
       <Stack
         spacing={0.5}
         sx={{
@@ -231,6 +265,30 @@ export default function ItemsTab({
           minRows={3}
         />
       </Stack>
+
+      <Dialog open={!!pendingDelete} onClose={() => setPendingDelete(null)}>
+        <DialogTitle>{T.ticket.items.deleteTitle}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {T.ticket.items.deleteConfirm.replace(
+              "{name}",
+              pendingDelete?.name ?? "",
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingDelete(null)}>
+            {T.common.cancel}
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => pendingDelete && removeItem(pendingDelete.id)}
+          >
+            {T.common.delete}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

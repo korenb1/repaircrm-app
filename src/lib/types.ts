@@ -19,6 +19,17 @@ export interface Profile {
   id: string;
   full_name: string;
   role: Role;
+  phone: string;
+  telegram_username: string; // stored without leading '@'
+  avatar_path: string | null;
+  created_at: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: Role;
   created_at: string;
 }
 
@@ -253,8 +264,16 @@ export interface TicketRow extends Ticket {
     Contact,
     "id" | "first_name" | "last_name" | "phone" | "email" | "address"
   > | null;
-  manager?: { full_name: string } | null;
-  technician?: { full_name: string } | null;
+  manager?: ProfileRef | null;
+  technician?: ProfileRef | null;
+  items?: { technician: ProfileRef | null }[];
   price?: number;
   paid?: number;
+}
+
+// Minimal profile fields embedded in joined rows (avatars + tooltips).
+export interface ProfileRef {
+  id: string;
+  full_name: string;
+  avatar_path: string | null;
 }
