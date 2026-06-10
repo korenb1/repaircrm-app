@@ -16,6 +16,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -47,8 +48,8 @@ export default function ItemsTab({
   const [technician, setTechnician] = useState<Profile | null>(null);
   const [picked, setPicked] = useState<ServiceCatalogItem | null>(null);
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [qty, setQty] = useState("1");
+  const [price, setPrice] = useState<number | null>(null);
+  const [qty, setQty] = useState<number | null>(1);
   const [concl, setConcl] = useState(conclusion ?? "");
   const [busy, setBusy] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<TicketItem | null>(null);
@@ -71,14 +72,14 @@ export default function ItemsTab({
       technician_id: technician?.id ?? null,
       kind: picked?.kind ?? "labor",
       name: picked?.name ?? name,
-      price: Number(price || picked?.price || 0),
-      qty: Number(qty) || 1,
+      price: price ?? picked?.price ?? 0,
+      qty: qty ?? 1,
     });
     setBusy(false);
     setPicked(null);
     setName("");
-    setPrice("");
-    setQty("1");
+    setPrice(null);
+    setQty(1);
     router.refresh();
   }
 
@@ -192,7 +193,7 @@ export default function ItemsTab({
               if (o && typeof o !== "string") {
                 setPicked(o);
                 setName(o.name);
-                setPrice(String(o.price));
+                setPrice(o.price);
               } else {
                 setPicked(null);
               }
@@ -208,22 +209,21 @@ export default function ItemsTab({
           />
         </Grid>
         <Grid size={{ xs: 6, sm: 2 }}>
-          <TextField
+          <NumberField
             label="Ціна"
-            type="number"
             size="small"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onValueChange={(v) => setPrice(v)}
             fullWidth
           />
         </Grid>
         <Grid size={{ xs: 6, sm: 2 }}>
-          <TextField
+          <NumberField
             label="К-сть"
-            type="number"
             size="small"
             value={qty}
-            onChange={(e) => setQty(e.target.value)}
+            onValueChange={(v) => setQty(v)}
+            min={1}
             fullWidth
           />
         </Grid>

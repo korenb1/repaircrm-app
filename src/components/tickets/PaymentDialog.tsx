@@ -10,6 +10,7 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
 import { createClient } from "@/lib/supabase/client";
 import type { PaymentKind } from "@/lib/types";
 
@@ -41,12 +42,12 @@ export default function PaymentDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function save() {
-    const raw = Number(amount);
+    const raw = amount ?? 0;
     if (!raw) return;
     let value = Math.abs(raw);
     if (NEGATIVE.includes(kind)) value = -value;
@@ -70,11 +71,10 @@ export default function PaymentDialog({
       <DialogTitle>{TITLE[kind]}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <TextField
+          <NumberField
             label={SIGNED.includes(kind) ? "Сума (+/−)" : "Сума"}
-            type="number"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onValueChange={(v) => setAmount(v)}
             autoFocus
             fullWidth
           />

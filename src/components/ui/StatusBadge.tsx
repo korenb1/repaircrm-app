@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Menu, MenuItem } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -17,6 +17,11 @@ export default function StatusBadge({
   const supabase = createClient();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [current, setCurrent] = useState<string>(status);
+
+  // The virtualized table recycles row components, so a reused StatusBadge must
+  // resync to the new row's status prop — otherwise it keeps showing the
+  // previously-rendered ticket's status (e.g. "Нове" on every recycled row).
+  useEffect(() => setCurrent(status), [status]);
   const [saving, setSaving] = useState(false);
 
   const meta = useStatusMeta(current);

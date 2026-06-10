@@ -30,3 +30,6 @@ next-env.d.ts
 # supabase
 supabase/.branches
 supabase/.temp
+
+# playwright-cli test artifacts
+.playwright-cli/

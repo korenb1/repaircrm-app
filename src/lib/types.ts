@@ -277,3 +277,25 @@ export interface ProfileRef {
   full_name: string;
   avatar_path: string | null;
 }
+
+// Saved ticket-filter presets (mirrors ticket_filters table).
+export interface FilterCriteria {
+  status?: string[];
+  group?: number[];
+  brand?: number[];
+  model?: number[];
+  client?: number[];
+  manager?: string[];
+  technician?: string[];
+  created?: string; // date preset key, see src/lib/datePresets
+}
+
+export interface TicketFilter {
+  id: number;
+  owner_id: string;
+  name: string;
+  icon: string | null;
+  is_shared: boolean;
+  criteria: FilterCriteria;
+  created_at: string;
+}

@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Box, Button, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
@@ -35,6 +35,12 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
       );
   }, [rows, tab, search]);
 
+  // All tags used across contacts, for the create dialog's suggestions.
+  const tagOptions = useMemo(
+    () => Array.from(new Set(rows.flatMap((r) => r.tags ?? []))).sort(),
+    [rows],
+  );
+
   const cols = useMemo<ColumnDef<Row, any>[]>(
     () => [
       {
@@ -42,12 +48,17 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
         header: T.contacts.cols.name,
         accessorFn: (r) => fullName(r),
         cell: (c) => (
-          <Link
-            href={`/contacts/${c.row.original.id}`}
-            style={{ color: "#1976d2", fontWeight: 600, textDecoration: "none" }}
-          >
-            {fullName(c.row.original)}
-          </Link>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
+            <Link
+              href={`/contacts/${c.row.original.id}`}
+              style={{ color: "#1976d2", fontWeight: 600, textDecoration: "none" }}
+            >
+              {fullName(c.row.original)}
+            </Link>
+            {(c.row.original.tags ?? []).map((t) => (
+              <Chip key={t} label={t} size="small" variant="outlined" />
+            ))}
+          </Stack>
         ),
       },
       {
@@ -122,6 +133,7 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
         open={open}
         onClose={() => setOpen(false)}
         defaultType={tab === 0 ? "person" : "organization"}
+        tagOptions={tagOptions}
       />
     </Box>
   );

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import TicketsTable from "@/components/tickets/TicketsTable";
-import type { TicketRow, TicketTotals } from "@/lib/types";
+import type { TicketFilter, TicketRow, TicketTotals } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +35,17 @@ export default async function WorkflowsPage() {
     paid: totalsMap.get(t.id)?.paid ?? 0,
   }));
 
-  return <TicketsTable rows={rows} currentUserId={user?.id ?? null} />;
+  // Saved filters visible to this user (own + shared, enforced by RLS).
+  const { data: savedFilters } = await supabase
+    .from("ticket_filters")
+    .select("*")
+    .order("created_at");
+
+  return (
+    <TicketsTable
+      rows={rows}
+      currentUserId={user?.id ?? null}
+      savedFilters={(savedFilters ?? []) as TicketFilter[]}
+    />
+  );
 }

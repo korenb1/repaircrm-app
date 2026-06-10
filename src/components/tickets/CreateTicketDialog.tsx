@@ -19,6 +19,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
 import CloseIcon from "@mui/icons-material/Close";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
@@ -62,11 +63,11 @@ export default function CreateTicketDialog({
   const [deviceState, setDeviceState] = useState("");
   const [malfunction, setMalfunction] = useState("");
   const [complectation, setComplectation] = useState("");
-  const [estPrice, setEstPrice] = useState("");
+  const [estPrice, setEstPrice] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState<Dayjs | null>(dayjs().add(1, "day").hour(18).minute(0));
   const [urgent, setUrgent] = useState(false);
   const [managerNotes, setManagerNotes] = useState("");
-  const [prepayment, setPrepayment] = useState("");
+  const [prepayment, setPrepayment] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [attempted, setAttempted] = useState(false);
 
@@ -98,11 +99,11 @@ export default function CreateTicketDialog({
     setDeviceState("");
     setMalfunction("");
     setComplectation("");
-    setEstPrice("");
+    setEstPrice(null);
     setDueDate(dayjs().add(1, "day").hour(18).minute(0));
     setUrgent(false);
     setManagerNotes("");
-    setPrepayment("");
+    setPrepayment(null);
     setAttempted(false);
   }
 
@@ -189,8 +190,8 @@ export default function CreateTicketDialog({
         device_state: deviceState || null,
         malfunction: malfunction || null,
         complectation: complectation || null,
-        est_price: Number(estPrice) || 0,
-        prepayment: Number(prepayment) || 0,
+        est_price: estPrice ?? 0,
+        prepayment: prepayment ?? 0,
         due_date: dueDate ? dueDate.toISOString() : null,
         urgent,
         manager_notes: managerNotes || null,
@@ -204,12 +205,12 @@ export default function CreateTicketDialog({
     }
 
     // record prepayment as a ledger row tied to the client
-    if (client && Number(prepayment) > 0) {
+    if (client && (prepayment ?? 0) > 0) {
       await supabase.from("payments").insert({
         contact_id: client.id,
         ticket_id: data.id,
         kind: "prepayment",
-        amount: Number(prepayment),
+        amount: prepayment ?? 0,
         comment: "Передоплата при створенні заявки",
       });
     }
@@ -328,11 +329,10 @@ export default function CreateTicketDialog({
             multiline
             minRows={2}
           />
-          <TextField
+          <NumberField
             label="Орієнтовна ціна"
-            type="number"
             value={estPrice}
-            onChange={(e) => setEstPrice(e.target.value)}
+            onValueChange={(v) => setEstPrice(v)}
             fullWidth
           />
           <DateTimePicker
@@ -356,11 +356,10 @@ export default function CreateTicketDialog({
             multiline
             minRows={2}
           />
-          <TextField
+          <NumberField
             label="Передоплата"
-            type="number"
             value={prepayment}
-            onChange={(e) => setPrepayment(e.target.value)}
+            onValueChange={(v) => setPrepayment(v)}
             fullWidth
           />
         </Stack>

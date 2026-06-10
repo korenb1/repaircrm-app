@@ -13,6 +13,7 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -38,7 +39,7 @@ function ItemDialog({
   const [kind, setKind] = useState<ItemKind>(initial?.kind ?? "service");
   const [name, setName] = useState(initial?.name ?? "");
   const [sku, setSku] = useState(initial?.sku ?? "");
-  const [price, setPrice] = useState(String(initial?.price ?? 0));
+  const [price, setPrice] = useState<number | null>(initial?.price ?? 0);
   const [saving, setSaving] = useState(false);
 
   async function submit() {
@@ -48,7 +49,7 @@ function ItemDialog({
       kind,
       name: name.trim(),
       sku: sku.trim() || null,
-      price: Number(price) || 0,
+      price: price ?? 0,
     };
     if (initial) {
       await supabase.from("service_catalog").update(payload).eq("id", initial.id);
@@ -93,11 +94,10 @@ function ItemDialog({
             onChange={(e) => setSku(e.target.value)}
             fullWidth
           />
-          <TextField
+          <NumberField
             label={T.settings.services.price}
-            type="number"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onValueChange={(v) => setPrice(v)}
             fullWidth
           />
         </Stack>

@@ -14,6 +14,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
@@ -74,7 +75,7 @@ export default function GeneralTab({
   const [deviceState, setDeviceState] = useState(ticket.device_state ?? "");
   const [malfunction, setMalfunction] = useState(ticket.malfunction ?? "");
   const [complectation, setComplectation] = useState(ticket.complectation ?? "");
-  const [estPrice, setEstPrice] = useState(String(ticket.est_price ?? 0));
+  const [estPrice, setEstPrice] = useState<number | null>(ticket.est_price ?? 0);
   const [dueDate, setDueDate] = useState<Dayjs | null>(
     ticket.due_date ? dayjs(ticket.due_date) : null,
   );
@@ -138,7 +139,7 @@ export default function GeneralTab({
         device_state: deviceState || null,
         malfunction: malfunction.trim() || null,
         complectation: complectation || null,
-        est_price: Number(estPrice) || 0,
+        est_price: estPrice ?? 0,
         due_date: dueDate ? dueDate.toISOString() : null,
         urgent,
         manager_notes: managerNotes || null,
@@ -361,11 +362,10 @@ export default function GeneralTab({
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
+          <NumberField
             label="Орієнтовна ціна"
-            type="number"
             value={estPrice}
-            onChange={(e) => setEstPrice(e.target.value)}
+            onValueChange={(v) => setEstPrice(v)}
             fullWidth
           />
         </Grid>

@@ -28,14 +28,14 @@ function Card({
         alignItems: "center",
         gap: 1.75,
         borderRadius: "10px",
-        boxShadow: "0 8px 24px rgba(16,24,40,0.08)",
+        boxShadow: "0 8px 24px rgba(38,43,67,0.16)",
       }}
     >
       <Box
         sx={{
           width: 44,
           height: 44,
-          borderRadius: "14px",
+          borderRadius: "8px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

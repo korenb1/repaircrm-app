@@ -21,6 +21,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import StarIcon from "@mui/icons-material/Star";
@@ -60,7 +61,7 @@ function StatusDialog({
   const [label, setLabel] = useState(initial?.label ?? "");
   const [color, setColor] = useState(initial?.color ?? "#616161");
   const [bg, setBg] = useState(initial?.bg ?? "#eeeeee");
-  const [sortOrder, setSortOrder] = useState(String(initial?.sort_order ?? statuses.length + 1));
+  const [sortOrder, setSortOrder] = useState<number | null>(initial?.sort_order ?? statuses.length + 1);
   const [isDefault, setIsDefault] = useState(initial?.is_default ?? false);
   const [isTerminal, setIsTerminal] = useState(initial?.is_terminal ?? false);
 
@@ -85,7 +86,7 @@ function StatusDialog({
       label: label.trim(),
       color,
       bg,
-      sort_order: Number(sortOrder) || 0,
+      sort_order: sortOrder ?? 0,
       is_default: isDefault,
       is_terminal: isTerminal,
     };
@@ -185,11 +186,10 @@ function StatusDialog({
               />
             </Box>
           </Stack>
-          <TextField
+          <NumberField
             label={T.settings.statuses.sortOrder}
-            type="number"
             value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
+            onValueChange={(v) => setSortOrder(v)}
             sx={{ width: 140 }}
           />
           <Stack direction="row" spacing={3}>

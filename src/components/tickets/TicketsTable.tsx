@@ -1,9 +1,11 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Button, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, Collapse, Stack, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -11,10 +13,51 @@ import SummaryCards from "@/components/ui/SummaryCards";
 import UserAvatar from "@/components/ui/UserAvatar";
 import TechnicianAvatars, { type Tech } from "@/components/ui/TechnicianAvatars";
 import CreateTicketDialog from "@/components/tickets/CreateTicketDialog";
+import TicketFilterPanel, {
+  type EntityOption,
+  type FilterOptions,
+} from "@/components/tickets/TicketFilterPanel";
+import SaveFilterDialog from "@/components/tickets/SaveFilterDialog";
+import { createClient } from "@/lib/supabase/client";
 import { useTerminalKeys } from "@/lib/status-context";
+import { filterIcon } from "@/lib/filterIcons";
+import { inPreset } from "@/lib/datePresets";
 import { T } from "@/lib/constants";
 import { formatUAH, formatDateTime, relativeDue } from "@/lib/money";
-import type { TicketRow } from "@/lib/types";
+import type { FilterCriteria, TicketFilter, TicketRow } from "@/lib/types";
+
+// Distinct {id,name} options from rows for one accessor, sorted by name.
+function distinct(
+  rows: TicketRow[],
+  pick: (r: TicketRow) => EntityOption | null,
+): EntityOption[] {
+  const map = new Map<string | number, EntityOption>();
+  for (const r of rows) {
+    const o = pick(r);
+    if (o && o.name && !map.has(o.id)) map.set(o.id, o);
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Any criterion present (non-empty array or a real date preset)?
+function hasCriteria(c: FilterCriteria): boolean {
+  return (
+    !!c.status?.length ||
+    !!c.group?.length ||
+    !!c.brand?.length ||
+    !!c.model?.length ||
+    !!c.client?.length ||
+    !!c.manager?.length ||
+    !!c.technician?.length ||
+    (!!c.created && c.created !== "all")
+  );
+}
+
+// OR within a category: empty list = no constraint.
+function inList<T>(arr: T[] | undefined, value: T | null | undefined): boolean {
+  if (!arr || arr.length === 0) return true;
+  return value != null && arr.includes(value);
+}
 
 function clientName(c: TicketRow["client"]) {
   if (!c) return "";
@@ -42,34 +85,142 @@ function rowTechs(r: TicketRow): Tech[] {
 export default function TicketsTable({
   rows,
   currentUserId,
+  savedFilters = [],
 }: {
   rows: TicketRow[];
   currentUserId: string | null;
+  savedFilters?: TicketFilter[];
 }) {
+  const router = useRouter();
+  const supabase = createClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   // capture wall-clock once at mount; reading it during render is impure
   const [now] = useState(() => Date.now());
   const terminalKeys = useTerminalKeys();
 
+  // Filter state
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [criteria, setCriteria] = useState<FilterCriteria>({});
+  const [activeFilterId, setActiveFilterId] = useState<number | null>(null);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [filters, setFilters] = useState<TicketFilter[]>(savedFilters);
+
+  // Brand options are restricted to the selected group(s); model options to the
+  // selected brand(s) — cascading so you only pick brands/models that exist
+  // under the upstream choice.
+  const filterOptions = useMemo<FilterOptions>(() => {
+    const brandRows = rows.filter(
+      (r) =>
+        !criteria.group?.length ||
+        (r.group_id != null && criteria.group.includes(r.group_id)),
+    );
+    const modelRows = brandRows.filter(
+      (r) =>
+        !criteria.brand?.length ||
+        (r.brand_id != null && criteria.brand.includes(r.brand_id)),
+    );
+    return {
+      group: distinct(rows, (r) =>
+        r.group_id ? { id: r.group_id, name: r.group?.name ?? "" } : null,
+      ),
+      brand: distinct(brandRows, (r) =>
+        r.brand_id ? { id: r.brand_id, name: r.brand?.name ?? "" } : null,
+      ),
+      model: distinct(modelRows, (r) =>
+        r.model_id ? { id: r.model_id, name: r.model?.name ?? "" } : null,
+      ),
+      client: distinct(rows, (r) =>
+        r.client ? { id: r.client.id, name: clientName(r.client) } : null,
+      ),
+      manager: distinct(rows, (r) =>
+        r.manager ? { id: r.manager.id, name: r.manager.full_name } : null,
+      ),
+      technician: distinct(rows, (r) =>
+        r.technician ? { id: r.technician.id, name: r.technician.full_name } : null,
+      ),
+    };
+  }, [rows, criteria.group, criteria.brand]);
+
+  // Toggle a saved filter on/off without opening the category panel.
+  function applyFilter(f: TicketFilter) {
+    if (activeFilterId === f.id) {
+      resetFilter();
+      return;
+    }
+    setCriteria(f.criteria ?? {});
+    setActiveFilterId(f.id);
+  }
+
+  function resetFilter() {
+    setCriteria({});
+    setActiveFilterId(null);
+  }
+
+  function onCriteriaChange(next: FilterCriteria) {
+    const cleaned: FilterCriteria = { ...next };
+    // Cascading: changing a group clears downstream brand+model; changing a
+    // brand clears model — they may no longer be valid under the new parent.
+    const groupChanged =
+      JSON.stringify(next.group ?? []) !== JSON.stringify(criteria.group ?? []);
+    const brandChanged =
+      JSON.stringify(next.brand ?? []) !== JSON.stringify(criteria.brand ?? []);
+    if (groupChanged) {
+      cleaned.brand = [];
+      cleaned.model = [];
+    } else if (brandChanged) {
+      cleaned.model = [];
+    }
+    setCriteria(cleaned);
+    setActiveFilterId(null); // editing detaches from a saved filter
+  }
+
+  async function deleteFilter() {
+    if (activeFilterId == null) return;
+    await supabase.from("ticket_filters").delete().eq("id", activeFilterId);
+    setFilters((prev) => prev.filter((f) => f.id !== activeFilterId));
+    resetFilter();
+    router.refresh();
+  }
+
+  const activeFilter = filters.find((f) => f.id === activeFilterId) ?? null;
+  const canDelete = !!activeFilter && activeFilter.owner_id === currentUserId;
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [
-        r.number,
-        r.group?.name,
-        r.brand?.name,
-        r.model?.name,
-        r.sn_imei,
-        r.malfunction,
-        clientName(r.client),
-        r.client?.phone,
-      ]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [rows, search]);
+    return rows.filter((r) => {
+      if (
+        q &&
+        ![
+          r.number,
+          r.group?.name,
+          r.brand?.name,
+          r.model?.name,
+          r.sn_imei,
+          r.malfunction,
+          clientName(r.client),
+          r.client?.phone,
+        ]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      )
+        return false;
+
+      // Structured criteria: AND across categories, OR within each.
+      const techIds = rowTechs(r).map((t) => t.id);
+      return (
+        inList(criteria.status, r.status) &&
+        inList(criteria.group, r.group_id) &&
+        inList(criteria.brand, r.brand_id) &&
+        inList(criteria.model, r.model_id) &&
+        inList(criteria.client, r.client?.id) &&
+        inList(criteria.manager, r.manager?.id) &&
+        (!criteria.technician?.length ||
+          techIds.some((id) => criteria.technician!.includes(id))) &&
+        inPreset(r.created_at, criteria.created, now)
+      );
+    });
+  }, [rows, search, criteria, now]);
 
   const summary = useMemo(() => {
     let mine = 0,
@@ -278,6 +429,28 @@ export default function TicketsTable({
           onChange={(e) => setSearch(e.target.value)}
           sx={{ width: 280 }}
         />
+        <Button
+          variant={panelOpen ? "contained" : "outlined"}
+          color={panelOpen ? "primary" : "inherit"}
+          startIcon={<FilterListIcon />}
+          onClick={() => setPanelOpen((v) => !v)}
+        >
+          {T.workflows.filters.filter}
+        </Button>
+        {filters.map((f) => {
+          const Icon = filterIcon(f.icon);
+          const active = f.id === activeFilterId;
+          return (
+            <Chip
+              key={f.id}
+              icon={<Icon />}
+              label={f.name}
+              variant={active ? "filled" : "outlined"}
+              color={active ? "primary" : "default"}
+              onClick={() => applyFilter(f)}
+            />
+          );
+        })}
         <Box sx={{ flexGrow: 1 }} />
         <Typography variant="body2" sx={{
           color: "text.secondary"
@@ -285,8 +458,47 @@ export default function TicketsTable({
           Всього — {filtered.length}
         </Typography>
       </Stack>
+      <Collapse in={panelOpen} unmountOnExit>
+        <Box sx={{ borderBottom: "1px solid #eee", mb: 1.5 }}>
+          <TicketFilterPanel
+            options={filterOptions}
+            criteria={criteria}
+            onChange={onCriteriaChange}
+          />
+          {hasCriteria(criteria) && (
+            <Stack direction="row" spacing={1.5} sx={{ pb: 2 }}>
+              <Button variant="outlined" onClick={resetFilter}>
+                {T.workflows.filters.reset}
+              </Button>
+              {activeFilterId == null ? (
+                <Button variant="contained" onClick={() => setSaveOpen(true)}>
+                  {T.workflows.filters.create}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={deleteFilter}
+                  disabled={!canDelete}
+                >
+                  {T.workflows.filters.delete}
+                </Button>
+              )}
+            </Stack>
+          )}
+        </Box>
+      </Collapse>
       <DataTable data={filtered} columns={cols} dense storageKey="tickets" />
       <CreateTicketDialog open={open} onClose={() => setOpen(false)} />
+      <SaveFilterDialog
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        criteria={criteria}
+        onSaved={(f) => {
+          setFilters((prev) => [...prev, f]);
+          setActiveFilterId(f.id);
+        }}
+      />
     </Box>
   );
 }

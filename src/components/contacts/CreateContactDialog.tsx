@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,14 +11,16 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  Radio,
+  RadioGroup,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import NumberField from "@/components/NumberField";
+import TagsInput from "@/components/contacts/TagsInput";
 import CloseIcon from "@mui/icons-material/Close";
 import { createClient } from "@/lib/supabase/client";
 import PhoneListEditor, {
@@ -53,12 +54,14 @@ export default function CreateContactDialog({
   defaultType = "person",
   defaultPhone,
   onCreated,
+  tagOptions = [],
 }: {
   open: boolean;
   onClose: () => void;
   defaultType?: "person" | "organization";
   defaultPhone?: string;
   onCreated?: (contact: Contact) => void;
+  tagOptions?: string[];
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -66,17 +69,16 @@ export default function CreateContactDialog({
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [type, setType] = useState<"person" | "organization">(defaultType);
-  const [isSupplier, setIsSupplier] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneList, setPhoneList] = useState<PhoneDraft[]>(initialPhones(defaultPhone));
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [discountCard, setDiscountCard] = useState("");
-  const [discountService, setDiscountService] = useState("0");
-  const [discountGoods, setDiscountGoods] = useState("0");
+  const [discountService, setDiscountService] = useState<number | null>(0);
+  const [discountGoods, setDiscountGoods] = useState<number | null>(0);
   const [note, setNote] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [attempted, setAttempted] = useState(false);
 
@@ -86,17 +88,16 @@ export default function CreateContactDialog({
   }, [open, defaultPhone]);
 
   function reset() {
-    setIsSupplier(false);
     setFirstName("");
     setLastName("");
     setPhoneList(initialPhones());
     setEmail("");
     setAddress("");
     setDiscountCard("");
-    setDiscountService("0");
-    setDiscountGoods("0");
+    setDiscountService(0);
+    setDiscountGoods(0);
     setNote("");
-    setTags("");
+    setTags([]);
     setAttempted(false);
   }
 
@@ -116,18 +117,15 @@ export default function CreateContactDialog({
       .from("contacts")
       .insert({
         type,
-        is_supplier: isSupplier,
         first_name: firstName,
         last_name: lastName || null,
         email: email || null,
         address: address || null,
         discount_card: discountCard || null,
-        discount_service: Number(discountService) || 0,
-        discount_goods: Number(discountGoods) || 0,
+        discount_service: discountService ?? 0,
+        discount_goods: discountGoods ?? 0,
         note: note || null,
-        tags: tags
-          ? tags.split(",").map((t) => t.trim()).filter(Boolean)
-          : [],
+        tags,
       })
       .select("id")
       .single();
@@ -181,25 +179,18 @@ export default function CreateContactDialog({
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <ToggleButtonGroup
-            exclusive
+          <RadioGroup
+            row
             value={type}
-            onChange={(_, v) => v && setType(v)}
-            size="small"
+            onChange={(_, v) => setType(v as "person" | "organization")}
           >
-            <ToggleButton value="person">Людина</ToggleButton>
-            <ToggleButton value="organization">Організація</ToggleButton>
-          </ToggleButtonGroup>
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={isSupplier}
-                onChange={(e) => setIsSupplier(e.target.checked)}
-              />
-            }
-            label="Постачальник"
-          />
+            <FormControlLabel value="person" control={<Radio />} label="Людина" />
+            <FormControlLabel
+              value="organization"
+              control={<Radio />}
+              label="Організація"
+            />
+          </RadioGroup>
 
           <Divider textAlign="left">
             <Typography variant="subtitle2">Контактні дані</Typography>
@@ -246,18 +237,20 @@ export default function CreateContactDialog({
             fullWidth
           />
           <Stack direction="row" spacing={2}>
-            <TextField
+            <NumberField
               label="Знижка на послуги, %"
-              type="number"
               value={discountService}
-              onChange={(e) => setDiscountService(e.target.value)}
+              onValueChange={(v) => setDiscountService(v)}
+              min={0}
+              max={100}
               fullWidth
             />
-            <TextField
+            <NumberField
               label="Знижка на товари, %"
-              type="number"
               value={discountGoods}
-              onChange={(e) => setDiscountGoods(e.target.value)}
+              onValueChange={(v) => setDiscountGoods(v)}
+              min={0}
+              max={100}
               fullWidth
             />
           </Stack>
@@ -274,12 +267,7 @@ export default function CreateContactDialog({
             multiline
             minRows={2}
           />
-          <TextField
-            label="Теги (через кому)"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            fullWidth
-          />
+          <TagsInput value={tags} onChange={setTags} options={tagOptions} />
         </Stack>
       </DialogContent>
       <DialogActions>

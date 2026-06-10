@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Grid, TextField, Typography } from "@mui/material";
+import NumberField from "@/components/NumberField";
+import TagsInput from "@/components/contacts/TagsInput";
 import { createClient } from "@/lib/supabase/client";
 import PhoneListEditor, {
   type PhoneDraft,
@@ -35,11 +37,23 @@ export default function GeneralTab({
   const [email, setEmail] = useState(contact.email ?? "");
   const [address, setAddress] = useState(contact.address ?? "");
   const [discountCard, setDiscountCard] = useState(contact.discount_card ?? "");
-  const [discountService, setDiscountService] = useState(String(contact.discount_service ?? 0));
-  const [discountGoods, setDiscountGoods] = useState(String(contact.discount_goods ?? 0));
+  const [discountService, setDiscountService] = useState<number | null>(contact.discount_service ?? 0);
+  const [discountGoods, setDiscountGoods] = useState<number | null>(contact.discount_goods ?? 0);
   const [note, setNote] = useState(contact.note ?? "");
-  const [tags, setTags] = useState((contact.tags ?? []).join(", "));
+  const [tags, setTags] = useState<string[]>(contact.tags ?? []);
+  const [tagOptions, setTagOptions] = useState<string[]>(contact.tags ?? []);
   const [attempted, setAttempted] = useState(false);
+
+  // Load the set of tags already used across all contacts to suggest on focus.
+  useEffect(() => {
+    supabase
+      .from("contacts")
+      .select("tags")
+      .then(({ data }) => {
+        const all = (data ?? []).flatMap((r) => r.tags ?? []);
+        setTagOptions(Array.from(new Set(all)).sort());
+      });
+  }, [supabase]);
 
   // First name and at least one valid phone are mandatory.
   const phoneValid =
@@ -60,10 +74,10 @@ export default function GeneralTab({
         email: email || null,
         address: address || null,
         discount_card: discountCard || null,
-        discount_service: Number(discountService) || 0,
-        discount_goods: Number(discountGoods) || 0,
+        discount_service: discountService ?? 0,
+        discount_goods: discountGoods ?? 0,
         note: note || null,
-        tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        tags,
       })
       .eq("id", contact.id);
 
@@ -123,16 +137,16 @@ export default function GeneralTab({
           <TextField label="Дисконтна картка" value={discountCard} onChange={(e) => setDiscountCard(e.target.value)} fullWidth />
         </Grid>
         <Grid size={{ xs: 6, sm: 4 }}>
-          <TextField label="Знижка на послуги, %" type="number" value={discountService} onChange={(e) => setDiscountService(e.target.value)} fullWidth />
+          <NumberField label="Знижка на послуги, %" value={discountService} onValueChange={(v) => setDiscountService(v)} min={0} max={100} fullWidth />
         </Grid>
         <Grid size={{ xs: 6, sm: 4 }}>
-          <TextField label="Знижка на товари, %" type="number" value={discountGoods} onChange={(e) => setDiscountGoods(e.target.value)} fullWidth />
+          <NumberField label="Знижка на товари, %" value={discountGoods} onValueChange={(v) => setDiscountGoods(v)} min={0} max={100} fullWidth />
         </Grid>
         <Grid size={12}>
           <TextField label="Нотатка" value={note} onChange={(e) => setNote(e.target.value)} fullWidth multiline minRows={2} />
         </Grid>
         <Grid size={12}>
-          <TextField label="Теги (через кому)" value={tags} onChange={(e) => setTags(e.target.value)} fullWidth />
+          <TagsInput value={tags} onChange={setTags} options={tagOptions} />
         </Grid>
       </Grid>
   );
