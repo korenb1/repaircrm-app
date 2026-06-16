@@ -15,12 +15,14 @@ import {
   Typography,
 } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
+import SaveIcon from "@mui/icons-material/Save";
 import StatusBadge from "@/components/ui/StatusBadge";
 import GeneralTab from "@/components/tickets/tabs/GeneralTab";
 import ItemsTab from "@/components/tickets/tabs/ItemsTab";
 import InvoicesTab from "@/components/tickets/tabs/InvoicesTab";
 import TicketTimeline from "@/components/tickets/TicketTimeline";
-import { T } from "@/lib/constants";
+import { T, isTerminalGroup } from "@/lib/constants";
+import { useStatuses } from "@/lib/status-context";
 import { formatUAH } from "@/lib/money";
 import { renderTemplate, type TemplateContext } from "@/lib/document-variables";
 import { printHtml } from "@/lib/print";
@@ -136,6 +138,12 @@ export default function TicketCard({
 }) {
   const [tab, setTab] = useState(0);
 
+  // A closed ticket (terminal status group) is frozen: every parameter, line
+  // item, invoice, payment and the status itself become read-only. Only the
+  // timeline (comments / file attachments) stays editable.
+  const { byKey } = useStatuses();
+  const locked = isTerminalGroup(byKey.get(ticket.status)?.group);
+
   // The active savable tab registers its save handler here so the single
   // shared SAVE button in the footer drives whichever tab is open. Tabs
   // without a save (e.g. invoices) leave this null and the button hides.
@@ -220,7 +228,12 @@ export default function TicketCard({
 
           <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0, p: 2 }}>
             {tab === 0 && (
-              <GeneralTab ticket={ticket} profiles={profiles} registerSave={registerSave} />
+              <GeneralTab
+                ticket={ticket}
+                profiles={profiles}
+                registerSave={registerSave}
+                locked={locked}
+              />
             )}
             {tab === 1 && (
               <ItemsTab
@@ -230,6 +243,7 @@ export default function TicketCard({
                 catalog={catalog}
                 conclusion={ticket.conclusion}
                 registerSave={registerSave}
+                locked={locked}
               />
             )}
             {tab === 2 && (
@@ -238,6 +252,7 @@ export default function TicketCard({
                 clientId={ticket.client_id}
                 invoices={invoices}
                 payments={payments}
+                locked={locked}
               />
             )}
           </Box>
@@ -270,7 +285,7 @@ export default function TicketCard({
               company={company ?? undefined}
             />
             {canSave && (
-              <Button variant="contained" onClick={handleSave} disabled={saving}>
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>
                 {T.common.save}
               </Button>
             )}

@@ -13,7 +13,8 @@ export type PaymentKind =
   | "prepayment"
   | "advance"
   | "payout"
-  | "correction";
+  | "correction"
+  | "refund";
 
 export interface Profile {
   id: string;
@@ -125,7 +126,6 @@ export interface Ticket {
   model_id: number | null;
   modification_id: number | null;
   sn_imei: string | null;
-  color: string | null;
   device_state: string | null;
   malfunction: string | null;
   complectation: string | null;
@@ -134,10 +134,33 @@ export interface Ticket {
   due_date: string | null;
   urgent: boolean;
   manager_notes: string | null;
-  technician_notes: string | null;
   conclusion: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Flat directory reference lists managed in Settings → Довідник.
+export interface Malfunction {
+  id: number;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
+export interface EquipmentItem {
+  id: number;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ServiceCategory {
+  id: number;
+  kind: "service" | "product";
+  parent_id: number | null;
+  name: string;
+  is_default: boolean;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface ServiceCatalogItem {
@@ -146,6 +169,9 @@ export interface ServiceCatalogItem {
   name: string;
   sku: string | null;
   price: number;
+  category_id: number | null;
+  cost_price: number;
+  barcode: string | null;
 }
 
 export interface TicketItem {
@@ -188,6 +214,67 @@ export interface ContactBalance {
   balance: number;
 }
 
+export type FinanceKind = "expense" | "revenue";
+
+export interface FinanceCategory {
+  id: number;
+  kind: FinanceKind;
+  name: string;
+  is_default_closed: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export type FinanceAccountType = "cash" | "cashless" | "card";
+
+export interface FinancialAccount {
+  id: number;
+  name: string;
+  type: FinanceAccountType;
+  card_last4: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export type TransactionKind =
+  | "revenue"
+  | "expense"
+  | "transfer_in"
+  | "transfer_out";
+
+export interface FinanceTransaction {
+  id: number;
+  account_id: number;
+  kind: TransactionKind;
+  amount: number;
+  category_id: number | null;
+  contact_id: number | null;
+  ticket_id: number | null;
+  source_kind: PaymentKind | null;
+  comment: string | null;
+  transfer_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+// Ticket fields embedded into a ledger row so a ticket-linked payment can be
+// labelled with its number + device (group/brand/model).
+export interface FinanceTicketRef {
+  id: number;
+  number: string;
+  group?: { name: string } | null;
+  brand?: { name: string } | null;
+  model?: { name: string } | null;
+}
+
+// Joined row used by the ledger table (tx + category/contact/creator/ticket).
+export interface FinanceTransactionRow extends FinanceTransaction {
+  category?: { name: string } | null;
+  contact?: Pick<Contact, "id" | "first_name" | "last_name"> | null;
+  creator?: { full_name: string } | null;
+  ticket?: FinanceTicketRef | null;
+}
+
 export interface TicketStatusRow {
   key: string;
   label: string;
@@ -196,6 +283,7 @@ export interface TicketStatusRow {
   sort_order: number;
   is_terminal: boolean;
   is_default: boolean;
+  group: string;
 }
 
 export interface StatusTransition {

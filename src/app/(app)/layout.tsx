@@ -6,8 +6,10 @@ import type { TicketStatusRow, StatusTransition } from "@/lib/types";
 
 export default async function AppLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode;
+  modal: React.ReactNode;
 }) {
   const supabase = await createClient();
   const {
@@ -43,6 +45,7 @@ export default async function AppLayout({
     >
       <AppShell userName={userName} avatarUrl={avatarUrl}>
         {children}
+        {modal}
       </AppShell>
     </StatusProvider>
   );

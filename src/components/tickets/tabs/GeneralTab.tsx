@@ -19,9 +19,11 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { createClient } from "@/lib/supabase/client";
+import { parseEntries, formatEntries, mergePending } from "@/lib/directory";
 import UserAvatar from "@/components/ui/UserAvatar";
 import ClientAutocomplete from "@/components/tickets/ClientAutocomplete";
 import SnImeiField from "@/components/tickets/SnImeiField";
+import DirectoryMultiSelect from "@/components/tickets/DirectoryMultiSelect";
 import CascadingDeviceSelect, {
   type DeviceSelection,
   resolveDeviceSelection,
@@ -40,10 +42,12 @@ export default function GeneralTab({
   ticket,
   profiles,
   registerSave,
+  locked = false,
 }: {
   ticket: TicketRow;
   profiles: Profile[];
   registerSave?: (fn: (() => Promise<void>) | null) => void;
+  locked?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -73,8 +77,12 @@ export default function GeneralTab({
   });
   const [snImei, setSnImei] = useState(ticket.sn_imei ?? "");
   const [deviceState, setDeviceState] = useState(ticket.device_state ?? "");
-  const [malfunction, setMalfunction] = useState(ticket.malfunction ?? "");
-  const [complectation, setComplectation] = useState(ticket.complectation ?? "");
+  const [malfunction, setMalfunction] = useState<string[]>(parseEntries(ticket.malfunction));
+  const [malfunctionInput, setMalfunctionInput] = useState("");
+  const [complectation, setComplectation] = useState<string[]>(parseEntries(ticket.complectation));
+  const [equipmentInput, setEquipmentInput] = useState("");
+  const [malfunctionOpts, setMalfunctionOpts] = useState<string[]>([]);
+  const [equipmentOpts, setEquipmentOpts] = useState<string[]>([]);
   const [estPrice, setEstPrice] = useState<number | null>(ticket.est_price ?? 0);
   const [dueDate, setDueDate] = useState<Dayjs | null>(
     ticket.due_date ? dayjs(ticket.due_date) : null,
@@ -93,6 +101,23 @@ export default function GeneralTab({
       .order("first_name")
       .then(({ data }) => setContacts(data ?? []));
   }, [clientId, contacts.length, supabase]);
+
+  // Load the directory option lists for the malfunction / equipment chip
+  // autocompletes (free text is still allowed on top of these).
+  useEffect(() => {
+    supabase
+      .from("malfunctions")
+      .select("name")
+      .order("sort_order")
+      .order("name")
+      .then(({ data }) => setMalfunctionOpts((data ?? []).map((r) => r.name)));
+    supabase
+      .from("equipment_items")
+      .select("name")
+      .order("sort_order")
+      .order("name")
+      .then(({ data }) => setEquipmentOpts((data ?? []).map((r) => r.name)));
+  }, [supabase]);
 
   // Apply an existing device picked from the SN/IMEI search: autofill catalog.
   function applyDevice(d: DeviceRow) {
@@ -117,7 +142,7 @@ export default function GeneralTab({
     !!device.group_name.trim() &&
     !!device.model_name.trim() &&
     !!snImei.trim() &&
-    !!malfunction.trim();
+    mergePending(malfunction, malfunctionInput).length > 0;
 
   async function save() {
     if (!valid) {
@@ -137,8 +162,8 @@ export default function GeneralTab({
         modification_id: ids.modification_id,
         sn_imei: snImei.trim() || null,
         device_state: deviceState || null,
-        malfunction: malfunction.trim() || null,
-        complectation: complectation || null,
+        malfunction: formatEntries(mergePending(malfunction, malfunctionInput)) || null,
+        complectation: formatEntries(mergePending(complectation, equipmentInput)) || null,
         est_price: estPrice ?? 0,
         due_date: dueDate ? dueDate.toISOString() : null,
         urgent,
@@ -149,7 +174,13 @@ export default function GeneralTab({
   }
 
   // Register this tab's save handler with the parent's shared SAVE button.
+  // A locked (closed) ticket exposes no editable fields here, so it registers
+  // nothing and the SAVE button stays hidden while this tab is open.
   useEffect(() => {
+    if (locked) {
+      registerSave?.(null);
+      return;
+    }
     registerSave?.(save);
     return () => registerSave?.(null);
   });
@@ -161,6 +192,7 @@ export default function GeneralTab({
             options={profiles}
             getOptionLabel={(o) => o.full_name}
             value={manager}
+            disabled={locked}
             onChange={(_, o) => setManager(o)}
             renderOption={(props, o) => {
               const { key, ...rest } = props;
@@ -209,6 +241,7 @@ export default function GeneralTab({
             options={profiles}
             getOptionLabel={(o) => o.full_name}
             value={technician}
+            disabled={locked}
             onChange={(_, o) => setTechnician(o)}
             renderOption={(props, o) => {
               const { key, ...rest } = props;
@@ -281,6 +314,7 @@ export default function GeneralTab({
               <Tooltip title="Видалити клієнта">
                 <IconButton
                   size="small"
+                  disabled={locked}
                   onClick={() => {
                     setClientInfo(null);
                     setClientId(null);
@@ -294,6 +328,7 @@ export default function GeneralTab({
             <ClientAutocomplete
               contacts={contacts}
               value={null}
+              disabled={locked}
               onChange={(c) => {
                 if (c) {
                   setClientId(c.id);
@@ -316,6 +351,7 @@ export default function GeneralTab({
             value={snImei}
             onChange={setSnImei}
             onSelectDevice={applyDevice}
+            disabled={locked}
             required
             error={attempted && !snImei.trim()}
             helperText={attempted && !snImei.trim() ? FILL : undefined}
@@ -326,6 +362,7 @@ export default function GeneralTab({
             value={device}
             onChange={setDevice}
             showErrors={attempted}
+            disabled={locked}
           />
         </Grid>
         <Grid size={12}>
@@ -333,32 +370,43 @@ export default function GeneralTab({
             label="Стан"
             value={deviceState}
             onChange={(e) => setDeviceState(e.target.value)}
+            disabled={locked}
             fullWidth
             multiline
             minRows={2}
           />
         </Grid>
         <Grid size={12}>
-          <TextField
+          <DirectoryMultiSelect
             label="Несправність"
+            table="malfunctions"
+            options={malfunctionOpts}
             value={malfunction}
-            onChange={(e) => setMalfunction(e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
+            disabled={locked}
+            onChange={setMalfunction}
+            onOptionAdded={(n) => setMalfunctionOpts((p) => [...p, n])}
+            inputValue={malfunctionInput}
+            onInputValueChange={setMalfunctionInput}
             required
-            error={attempted && !malfunction.trim()}
-            helperText={attempted && !malfunction.trim() ? FILL : undefined}
+            error={attempted && mergePending(malfunction, malfunctionInput).length === 0}
+            helperText={
+              attempted && mergePending(malfunction, malfunctionInput).length === 0
+                ? FILL
+                : undefined
+            }
           />
         </Grid>
         <Grid size={12}>
-          <TextField
+          <DirectoryMultiSelect
             label="Комплектація"
+            table="equipment_items"
+            options={equipmentOpts}
             value={complectation}
-            onChange={(e) => setComplectation(e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
+            disabled={locked}
+            onChange={setComplectation}
+            onOptionAdded={(n) => setEquipmentOpts((p) => [...p, n])}
+            inputValue={equipmentInput}
+            onInputValueChange={setEquipmentInput}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -366,6 +414,7 @@ export default function GeneralTab({
             label="Орієнтовна ціна"
             value={estPrice}
             onValueChange={(v) => setEstPrice(v)}
+            disabled={locked}
             fullWidth
           />
         </Grid>
@@ -374,6 +423,7 @@ export default function GeneralTab({
             label="Термін"
             value={dueDate}
             onChange={(v) => setDueDate(v)}
+            disabled={locked}
             format="DD.MM.YYYY HH:mm"
             slotProps={{ textField: { fullWidth: true } }}
           />
@@ -381,7 +431,11 @@ export default function GeneralTab({
         <Grid size={12}>
           <FormControlLabel
             control={
-              <Checkbox checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
+              <Checkbox
+                checked={urgent}
+                disabled={locked}
+                onChange={(e) => setUrgent(e.target.checked)}
+              />
             }
             label="Терміново"
           />
@@ -391,6 +445,7 @@ export default function GeneralTab({
             label="Нотатки менеджера"
             value={managerNotes}
             onChange={(e) => setManagerNotes(e.target.value)}
+            disabled={locked}
             fullWidth
             multiline
             minRows={2}

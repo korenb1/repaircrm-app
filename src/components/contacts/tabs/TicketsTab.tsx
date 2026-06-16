@@ -68,7 +68,7 @@ export default function TicketsTab({
           Заявка
         </Button>
       </Stack>
-      <DataTable data={tickets} columns={cols} dense emptyText="Немає заявок" />
+      <DataTable data={tickets} columns={cols} dense emptyText="Немає заявок" storageKey="contact-tickets" />
       <CreateTicketDialog
         open={open}
         onClose={() => setOpen(false)}

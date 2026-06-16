@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Autocomplete,
   Box,
@@ -19,11 +18,14 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
 import NumberField from "@/components/NumberField";
+import UserAvatar from "@/components/ui/UserAvatar";
 import CloseIcon from "@mui/icons-material/Close";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { createClient } from "@/lib/supabase/client";
+import { formatEntries, mergePending } from "@/lib/directory";
 import { T } from "@/lib/constants";
 import { useStatuses } from "@/lib/status-context";
 import CascadingDeviceSelect, {
@@ -33,6 +35,8 @@ import CascadingDeviceSelect, {
 } from "@/components/tickets/CascadingDeviceSelect";
 import SnImeiField from "@/components/tickets/SnImeiField";
 import ClientAutocomplete from "@/components/tickets/ClientAutocomplete";
+import DirectoryMultiSelect from "@/components/tickets/DirectoryMultiSelect";
+import PaymentDialog from "@/components/tickets/PaymentDialog";
 import type { Contact, DeviceRow, Profile } from "@/lib/types";
 
 const FILL = "Заповніть це поле";
@@ -46,14 +50,16 @@ export default function CreateTicketDialog({
   onClose: () => void;
   defaultClientId?: number;
 }) {
-  const router = useRouter();
   const supabase = createClient();
+  const router = useRouter();
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const { statuses } = useStatuses();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [malfunctionOpts, setMalfunctionOpts] = useState<string[]>([]);
+  const [equipmentOpts, setEquipmentOpts] = useState<string[]>([]);
 
   const [manager, setManager] = useState<Profile | null>(null);
   const [technician, setTechnician] = useState<Profile | null>(null);
@@ -61,8 +67,10 @@ export default function CreateTicketDialog({
   const [device, setDevice] = useState<DeviceSelection>(emptyDeviceSelection);
   const [snImei, setSnImei] = useState("");
   const [deviceState, setDeviceState] = useState("");
-  const [malfunction, setMalfunction] = useState("");
-  const [complectation, setComplectation] = useState("");
+  const [malfunction, setMalfunction] = useState<string[]>([]);
+  const [malfunctionInput, setMalfunctionInput] = useState("");
+  const [complectation, setComplectation] = useState<string[]>([]);
+  const [equipmentInput, setEquipmentInput] = useState("");
   const [estPrice, setEstPrice] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState<Dayjs | null>(dayjs().add(1, "day").hour(18).minute(0));
   const [urgent, setUrgent] = useState(false);
@@ -70,6 +78,13 @@ export default function CreateTicketDialog({
   const [prepayment, setPrepayment] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  // After saving a ticket with a prepayment, collect the prepayment through the
+  // standard payment dialog (so an account is chosen) before finishing.
+  const [prepayDialog, setPrepayDialog] = useState<{
+    ticketId: number;
+    amount: number;
+    openAfter: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -77,6 +92,18 @@ export default function CreateTicketDialog({
       .from("profiles")
       .select("*")
       .then(({ data }) => setProfiles(data ?? []));
+    supabase
+      .from("malfunctions")
+      .select("name")
+      .order("sort_order")
+      .order("name")
+      .then(({ data }) => setMalfunctionOpts((data ?? []).map((r) => r.name)));
+    supabase
+      .from("equipment_items")
+      .select("name")
+      .order("sort_order")
+      .order("name")
+      .then(({ data }) => setEquipmentOpts((data ?? []).map((r) => r.name)));
     supabase
       .from("contacts")
       .select("*")
@@ -97,8 +124,10 @@ export default function CreateTicketDialog({
     setDevice(emptyDeviceSelection);
     setSnImei("");
     setDeviceState("");
-    setMalfunction("");
-    setComplectation("");
+    setMalfunction([]);
+    setMalfunctionInput("");
+    setComplectation([]);
+    setEquipmentInput("");
     setEstPrice(null);
     setDueDate(dayjs().add(1, "day").hour(18).minute(0));
     setUrgent(false);
@@ -137,7 +166,7 @@ export default function CreateTicketDialog({
     !!device.brand_name.trim() &&
     !!device.model_name.trim() &&
     !!client &&
-    !!malfunction.trim();
+    mergePending(malfunction, malfunctionInput).length > 0;
 
   async function submit(openAfter: boolean) {
     if (!canSubmit) {
@@ -188,8 +217,8 @@ export default function CreateTicketDialog({
         modification_id: ids.modification_id,
         sn_imei: snImei.trim() || null,
         device_state: deviceState || null,
-        malfunction: malfunction || null,
-        complectation: complectation || null,
+        malfunction: formatEntries(mergePending(malfunction, malfunctionInput)) || null,
+        complectation: formatEntries(mergePending(complectation, equipmentInput)) || null,
         est_price: estPrice ?? 0,
         prepayment: prepayment ?? 0,
         due_date: dueDate ? dueDate.toISOString() : null,
@@ -204,24 +233,35 @@ export default function CreateTicketDialog({
       return;
     }
 
-    // record prepayment as a ledger row tied to the client
+    setSaving(false);
+
+    // A prepayment is collected via the standard payment dialog so the cashier
+    // picks which finance account receives it. Otherwise finish immediately.
     if (client && (prepayment ?? 0) > 0) {
-      await supabase.from("payments").insert({
-        contact_id: client.id,
-        ticket_id: data.id,
-        kind: "prepayment",
-        amount: prepayment ?? 0,
-        comment: "Передоплата при створенні заявки",
-      });
+      setPrepayDialog({ ticketId: data.id, amount: prepayment ?? 0, openAfter });
+      return;
     }
 
-    setSaving(false);
+    finalize(openAfter, data.id);
+  }
+
+  // Reset the form, close, and navigate to the tickets context once the ticket
+  // (and any prepayment) is fully recorded. Use a soft navigation (router.push)
+  // so "Створити й відкрити" opens the ticket through the intercepting @modal
+  // route (a hard navigation would render the full /workflows/[id] page instead
+  // of the modal). router.refresh() then revalidates the underlying list so the
+  // new ticket shows without a manual reload.
+  function finalize(openAfter: boolean, ticketId: number) {
     reset();
     onClose();
-    // Navigate first (when opening the new ticket), then refresh last so the
-    // list refetch isn't aborted by the subsequent push navigation.
-    if (openAfter) router.push(`/workflows/${data.id}`);
-    router.refresh();
+    if (openAfter) {
+      // Soft-navigate only (no refresh): router.refresh() right after a push to
+      // an intercepted route cancels the interception and renders the full page.
+      router.push(`/workflows/${ticketId}`);
+    } else {
+      router.push("/workflows");
+      router.refresh();
+    }
   }
 
   // Clear the form whenever the dialog is dismissed (cancel / backdrop / X) so
@@ -232,6 +272,7 @@ export default function CreateTicketDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
         Нова заявка
@@ -247,6 +288,15 @@ export default function CreateTicketDialog({
             getOptionLabel={(o) => o.full_name}
             value={manager}
             onChange={(_, o) => setManager(o)}
+            renderOption={(props, o) => {
+              const { key, ...rest } = props;
+              return (
+                <Box component="li" key={key} {...rest} sx={{ display: "flex", gap: 1 }}>
+                  <UserAvatar name={o.full_name} avatarPath={o.avatar_path} size={24} />
+                  {o.full_name}
+                </Box>
+              );
+            }}
             renderInput={(p) => (
               <TextField
                 {...p}
@@ -254,6 +304,19 @@ export default function CreateTicketDialog({
                 required
                 error={attempted && !manager}
                 helperText={attempted && !manager ? FILL : undefined}
+                slotProps={{
+                  ...p.slotProps,
+                  input: {
+                    ...p.slotProps.input,
+                    startAdornment: manager ? (
+                      <Box sx={{ display: "flex", alignItems: "center", ml: 0.5 }}>
+                        <UserAvatar name={manager.full_name} avatarPath={manager.avatar_path} size={24} />
+                      </Box>
+                    ) : (
+                      p.slotProps.input.startAdornment
+                    ),
+                  },
+                }}
               />
             )}
           />
@@ -262,6 +325,15 @@ export default function CreateTicketDialog({
             getOptionLabel={(o) => o.full_name}
             value={technician}
             onChange={(_, o) => setTechnician(o)}
+            renderOption={(props, o) => {
+              const { key, ...rest } = props;
+              return (
+                <Box component="li" key={key} {...rest} sx={{ display: "flex", gap: 1 }}>
+                  <UserAvatar name={o.full_name} avatarPath={o.avatar_path} size={24} />
+                  {o.full_name}
+                </Box>
+              );
+            }}
             renderInput={(p) => (
               <TextField
                 {...p}
@@ -269,6 +341,19 @@ export default function CreateTicketDialog({
                 required
                 error={attempted && !technician}
                 helperText={attempted && !technician ? FILL : undefined}
+                slotProps={{
+                  ...p.slotProps,
+                  input: {
+                    ...p.slotProps.input,
+                    startAdornment: technician ? (
+                      <Box sx={{ display: "flex", alignItems: "center", ml: 0.5 }}>
+                        <UserAvatar name={technician.full_name} avatarPath={technician.avatar_path} size={24} />
+                      </Box>
+                    ) : (
+                      p.slotProps.input.startAdornment
+                    ),
+                  },
+                }}
               />
             )}
           />
@@ -310,24 +395,32 @@ export default function CreateTicketDialog({
             multiline
             minRows={2}
           />
-          <TextField
+          <DirectoryMultiSelect
             label="Несправність"
+            table="malfunctions"
+            options={malfunctionOpts}
             value={malfunction}
-            onChange={(e) => setMalfunction(e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
+            onChange={setMalfunction}
+            onOptionAdded={(n) => setMalfunctionOpts((p) => [...p, n])}
+            inputValue={malfunctionInput}
+            onInputValueChange={setMalfunctionInput}
             required
-            error={attempted && !malfunction.trim()}
-            helperText={attempted && !malfunction.trim() ? FILL : undefined}
+            error={attempted && mergePending(malfunction, malfunctionInput).length === 0}
+            helperText={
+              attempted && mergePending(malfunction, malfunctionInput).length === 0
+                ? FILL
+                : undefined
+            }
           />
-          <TextField
+          <DirectoryMultiSelect
             label="Комплектація"
+            table="equipment_items"
+            options={equipmentOpts}
             value={complectation}
-            onChange={(e) => setComplectation(e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
+            onChange={setComplectation}
+            onOptionAdded={(n) => setEquipmentOpts((p) => [...p, n])}
+            inputValue={equipmentInput}
+            onInputValueChange={setEquipmentInput}
           />
           <NumberField
             label="Орієнтовна ціна"
@@ -374,5 +467,21 @@ export default function CreateTicketDialog({
         </Button>
       </DialogActions>
     </Dialog>
+
+    {prepayDialog && client && (
+      <PaymentDialog
+        open
+        kind="prepayment"
+        contactId={client.id}
+        ticketId={prepayDialog.ticketId}
+        defaultAmount={prepayDialog.amount}
+        onClose={() => {
+          const { openAfter, ticketId } = prepayDialog;
+          setPrepayDialog(null);
+          finalize(openAfter, ticketId);
+        }}
+      />
+    )}
+    </>
   );
 }

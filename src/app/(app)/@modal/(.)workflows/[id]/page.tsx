@@ -5,9 +5,9 @@ import { getTicketDetail } from "@/lib/data/ticket";
 
 export const dynamic = "force-dynamic";
 
-// Intercepts soft navigation to /workflows/[id] and shows the ticket card
-// as a modal overlaid on the workflows list. A hard load of the same URL
-// falls back to the full-page route.
+// Intercepts soft navigation to /workflows/[id] from anywhere in the app and
+// shows the ticket card as a modal overlaid on the current page. A hard load
+// of the same URL falls back to the full-page route.
 export default async function TicketModal({
   params,
 }: {

@@ -65,7 +65,6 @@ export const VARIABLE_GROUPS: VariableGroup[] = [
       { token: "device.model", label: "Модель" },
       { token: "device.modification", label: "Модифікація" },
       { token: "device.sn_imei", label: "Серійний номер / IMEI" },
-      { token: "device.color", label: "Колір" },
     ],
   },
   {
@@ -162,7 +161,6 @@ export function buildTemplateValues(ctx: TemplateContext): Record<string, string
     "device.model": text(t.model?.name),
     "device.modification": text(t.modification?.name),
     "device.sn_imei": text(t.sn_imei),
-    "device.color": text(t.color),
 
     "finance.est_price": formatUAH(t.est_price),
     "finance.price": formatUAH(price),

@@ -16,6 +16,7 @@ const FALLBACK: TicketStatusRow = {
   sort_order: 0,
   is_terminal: false,
   is_default: false,
+  group: "new",
 };
 
 const StatusContext = createContext<StatusContextValue>({

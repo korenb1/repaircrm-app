@@ -94,10 +94,12 @@ export default function CascadingDeviceSelect({
   value,
   onChange,
   showErrors,
+  disabled = false,
 }: {
   value: DeviceSelection;
   onChange: (v: DeviceSelection) => void;
   showErrors?: boolean;
+  disabled?: boolean;
 }) {
   const supabase = createClient();
   const [groups, setGroups] = useState<Group[]>([]);
@@ -223,18 +225,18 @@ export default function CascadingDeviceSelect({
         model_name: "",
         modification_id: null,
         modification_name: "",
-      }, false, true)}
+      }, disabled, true)}
       {level("Бренд", brands, "brand_id", "brand_name", {
         model_id: null,
         model_name: "",
         modification_id: null,
         modification_name: "",
-      }, !value.group_name, true)}
+      }, disabled || !value.group_name, true)}
       {level("Модель", models, "model_id", "model_name", {
         modification_id: null,
         modification_name: "",
-      }, !value.brand_name, true)}
-      {level("Модифікація", mods, "modification_id", "modification_name", {}, !value.model_name, false)}
+      }, disabled || !value.brand_name, true)}
+      {level("Модифікація", mods, "modification_id", "modification_name", {}, disabled || !value.model_name, false)}
     </Stack>
   );
 }

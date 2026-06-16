@@ -24,10 +24,19 @@ export default function RouteDialog({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
+  // Restore the list URL, then revalidate it so changes made inside the modal
+  // (e.g. a ticket just created via "Створити й відкрити") show on the
+  // underlying page without a manual reload. Refreshing on close (rather than
+  // when the modal opens) keeps the route interception intact.
+  function close() {
+    router.back();
+    router.refresh();
+  }
+
   return (
     <Dialog
       open
-      onClose={() => router.back()}
+      onClose={close}
       maxWidth={maxWidth}
       fullWidth
       fullScreen={fullScreen}
@@ -35,7 +44,7 @@ export default function RouteDialog({
     >
       <IconButton
         aria-label="Закрити"
-        onClick={() => router.back()}
+        onClick={close}
         size="small"
         sx={{ position: "absolute", right: 8, top: 8, zIndex: 1 }}
       >

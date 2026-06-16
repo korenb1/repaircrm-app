@@ -4,12 +4,16 @@ import SettingsView from "@/components/settings/SettingsView";
 import type {
   Group,
   ServiceCatalogItem,
+  ServiceCategory,
+  Malfunction,
+  EquipmentItem,
   TicketStatusRow,
   StatusTransition,
   DocumentTemplate,
   CompanySettings,
   AdminUser,
   Profile,
+  FinanceCategory,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -53,10 +57,29 @@ export default async function SettingsPage() {
     .select("*")
     .order("name");
 
+  const { data: malfunctions } = await supabase
+    .from("malfunctions")
+    .select("*")
+    .order("sort_order")
+    .order("name");
+
+  const { data: equipment } = await supabase
+    .from("equipment_items")
+    .select("*")
+    .order("sort_order")
+    .order("name");
+
   const { data: services } = await supabase
     .from("service_catalog")
     .select("*")
     .order("kind")
+    .order("name");
+
+  const { data: serviceCategories } = await supabase
+    .from("service_categories")
+    .select("*")
+    .order("kind")
+    .order("sort_order")
     .order("name");
 
   const { data: statuses } = await supabase
@@ -79,6 +102,12 @@ export default async function SettingsPage() {
     .eq("id", 1)
     .single();
 
+  const { data: financeCategories } = await supabase
+    .from("finance_categories")
+    .select("*")
+    .order("kind")
+    .order("sort_order");
+
   const companyFallback: CompanySettings = {
     id: 1,
     name: "",
@@ -93,11 +122,15 @@ export default async function SettingsPage() {
   return (
     <SettingsView
       groups={(groups ?? []) as Group[]}
+      malfunctions={(malfunctions ?? []) as Malfunction[]}
+      equipment={(equipment ?? []) as EquipmentItem[]}
       services={(services ?? []) as ServiceCatalogItem[]}
+      serviceCategories={(serviceCategories ?? []) as ServiceCategory[]}
       statuses={(statuses ?? []) as TicketStatusRow[]}
       transitions={(transitions ?? []) as StatusTransition[]}
       templates={(templates ?? []) as DocumentTemplate[]}
       company={(company ?? companyFallback) as CompanySettings}
+      financeCategories={(financeCategories ?? []) as FinanceCategory[]}
       isAdmin={isAdmin}
       users={users}
     />

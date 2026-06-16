@@ -5,10 +5,12 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getPaginationRowModel,
+  getExpandedRowModel,
   useReactTable,
   type Column,
   type ColumnDef,
   type ColumnSizingState,
+  type ExpandedState,
   type Header,
   type SortingState,
 } from "@tanstack/react-table";
@@ -34,6 +36,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableFooter,
   TableHead,
   TablePagination,
   TableRow,
@@ -52,6 +55,12 @@ interface DataTableProps<T> {
   pageSize?: number;
   /** when set, column order + sizes persist in localStorage under this key. */
   storageKey?: string;
+  /** when set, rows become a tree; return a row's children (or undefined for leaves). */
+  getSubRows?: (row: T) => T[] | undefined;
+  /** stable row id (needed to key expansion state to specific rows). */
+  getRowId?: (row: T, index: number, parent?: { id: string }) => string;
+  /** initial expansion when getSubRows is set. Default true (all expanded). */
+  defaultExpanded?: ExpandedState;
 }
 
 // Stable id for a column def (matches tanstack's own derivation).
@@ -128,11 +137,15 @@ export default function DataTable<T>({
   dense = false,
   pageSize = 50,
   storageKey,
+  getSubRows,
+  getRowId,
+  defaultExpanded = true,
 }: DataTableProps<T>) {
   const initialOrder = useMemo(() => columns.map(colId), [columns]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnOrder, setColumnOrder] = useState<string[]>(initialOrder);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [expanded, setExpanded] = useState<ExpandedState>(defaultExpanded);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
   const hydrated = useRef(false);
 
@@ -175,16 +188,21 @@ export default function DataTable<T>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnOrder, columnSizing, pagination },
+    state: { sorting, columnOrder, columnSizing, expanded, pagination },
     onSortingChange: setSorting,
     onColumnOrderChange: setColumnOrder,
     onColumnSizingChange: setColumnSizing,
+    onExpandedChange: setExpanded,
     onPaginationChange: setPagination,
     columnResizeMode: "onChange",
     enableColumnResizing: true,
     defaultColumn: { minSize: 60, size: 160 },
+    getSubRows,
+    getRowId,
+    getRowCanExpand: getSubRows ? (row) => row.subRows.length > 0 : undefined,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getSubRows ? getExpandedRowModel() : undefined,
     getPaginationRowModel: getPaginationRowModel(),
   });
 
@@ -218,6 +236,7 @@ export default function DataTable<T>({
   const totalRows = table.getFilteredRowModel().rows.length;
   const showPagination = totalRows > pagination.pageSize;
   const headerIds = table.getVisibleLeafColumns().map((c: Column<T>) => c.id);
+  const hasFooter = columns.some((c) => c.footer != null);
 
   return (
     <Box>
@@ -288,6 +307,39 @@ export default function DataTable<T>({
               </>
             )}
           </TableBody>
+          {hasFooter && rows.length > 0 && (
+            <TableFooter
+              sx={{
+                position: "sticky",
+                bottom: 0,
+                zIndex: 2,
+                bgcolor: "#f7f8fa",
+              }}
+            >
+              {table.getFooterGroups().map((fg) => (
+                <TableRow key={fg.id}>
+                  {fg.headers.map((header) => (
+                    <TableCell
+                      key={header.id}
+                      sx={{
+                        width: header.getSize(),
+                        bgcolor: "#f7f8fa",
+                        borderTop: "2px solid #e0e0e0",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.footer,
+                            header.getContext(),
+                          )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableFooter>
+          )}
         </Table>
       </TableContainer>
       {showPagination && (

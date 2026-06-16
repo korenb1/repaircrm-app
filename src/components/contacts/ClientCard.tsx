@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import SaveIcon from "@mui/icons-material/Save";
 import { Box, Button, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
 import GeneralTab from "@/components/contacts/tabs/GeneralTab";
 import BalanceTab from "@/components/contacts/tabs/BalanceTab";
@@ -21,6 +22,7 @@ export default function ClientCard({
   balance,
   payments,
   tickets,
+  readyAt = {},
   phones,
   documents,
   embedded = false,
@@ -29,6 +31,7 @@ export default function ClientCard({
   balance: number;
   payments: Payment[];
   tickets: TicketRow[];
+  readyAt?: Record<number, string>;
   phones: ContactPhone[];
   documents: ContactDocument[];
   embedded?: boolean;
@@ -112,6 +115,7 @@ export default function ClientCard({
               balance={balance}
               payments={payments}
               tickets={tickets}
+              readyAt={readyAt}
             />
           )}
           {tab === 2 && <TicketsTab clientId={contact.id} tickets={tickets} />}
@@ -128,7 +132,7 @@ export default function ClientCard({
               flexShrink: 0,
             }}
           >
-            <Button variant="contained" onClick={handleSave} disabled={saving}>
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>
               {T.common.save}
             </Button>
           </Box>

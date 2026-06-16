@@ -59,7 +59,7 @@ export default function DevicesTab({ tickets }: { tickets: TicketRow[] }) {
 
   return (
     <Box>
-      <DataTable data={rows} columns={cols} dense emptyText="Немає пристроїв" />
+      <DataTable data={rows} columns={cols} dense emptyText="Немає пристроїв" storageKey="contact-devices" />
     </Box>
   );
 }

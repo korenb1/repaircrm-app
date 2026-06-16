@@ -21,6 +21,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import NumberField from "@/components/NumberField";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -29,8 +30,18 @@ import FlagIcon from "@mui/icons-material/Flag";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { T, STATUS_GROUPS, STATUS_GROUP_BY_KEY, isTerminalGroup } from "@/lib/constants";
 import type { TicketStatusRow, StatusTransition } from "@/lib/types";
+
+// A ticket in `fromGroup` may transition to `toGroup` unless:
+//  - the target is in the `new` group and the source is not (nothing re-enters
+//    the "new" group from later in the workflow), or
+//  - the source is a terminal (closed) group, which has no outgoing edges.
+function transitionAllowed(fromGroup: string, toGroup: string): boolean {
+  if (isTerminalGroup(fromGroup)) return false;
+  if (toGroup === "new" && fromGroup !== "new") return false;
+  return true;
+}
 
 function StatusChip({ row }: { row: TicketStatusRow }) {
   return (
@@ -59,11 +70,9 @@ function StatusDialog({
 
   const [key, setKey] = useState(initial?.key ?? "");
   const [label, setLabel] = useState(initial?.label ?? "");
-  const [color, setColor] = useState(initial?.color ?? "#616161");
-  const [bg, setBg] = useState(initial?.bg ?? "#eeeeee");
+  const [group, setGroup] = useState(initial?.group ?? "new");
   const [sortOrder, setSortOrder] = useState<number | null>(initial?.sort_order ?? statuses.length + 1);
   const [isDefault, setIsDefault] = useState(initial?.is_default ?? false);
-  const [isTerminal, setIsTerminal] = useState(initial?.is_terminal ?? false);
 
   const [toKeys, setToKeys] = useState<string[]>(
     initial ? transitions.filter((t) => t.from_key === initial.key).map((t) => t.to_key) : [],
@@ -75,6 +84,12 @@ function StatusDialog({
   const [saving, setSaving] = useState(false);
 
   const others = statuses.filter((s) => s.key !== (initial?.key ?? key));
+  const groupMeta = STATUS_GROUP_BY_KEY[group] ?? STATUS_GROUPS[0];
+
+  // This status may transition TO these (target group reachable from `group`).
+  const toOptions = others.filter((s) => transitionAllowed(group, s.group));
+  // This status may be transitioned FROM these (this group reachable from theirs).
+  const fromOptions = others.filter((s) => transitionAllowed(s.group, group));
 
   async function submit() {
     const cleanKey = key.trim();
@@ -84,11 +99,12 @@ function StatusDialog({
     const row = {
       key: cleanKey,
       label: label.trim(),
-      color,
-      bg,
+      group,
+      color: groupMeta.color,
+      bg: groupMeta.bg,
       sort_order: sortOrder ?? 0,
       is_default: isDefault,
-      is_terminal: isTerminal,
+      is_terminal: isTerminalGroup(group),
     };
 
     // single default: clear the flag on every other status first
@@ -105,9 +121,15 @@ function StatusDialog({
       await supabase.from("ticket_statuses").insert(row);
     }
 
-    // reconcile transitions for this status (both directions)
-    const desiredTo = new Set(toKeys);
-    const desiredFrom = new Set(fromKeys);
+    // reconcile transitions for this status (both directions); drop any edge
+    // that the group rules forbid (e.g. a target whose group changed under us)
+    const groupOf = new Map(statuses.map((s) => [s.key, s.group]));
+    const desiredTo = new Set(
+      toKeys.filter((k) => transitionAllowed(group, groupOf.get(k) ?? "new")),
+    );
+    const desiredFrom = new Set(
+      fromKeys.filter((k) => transitionAllowed(groupOf.get(k) ?? "new", group)),
+    );
     const existingTo = new Set(
       transitions.filter((t) => t.from_key === cleanKey).map((t) => t.to_key),
     );
@@ -161,19 +183,22 @@ function StatusDialog({
           />
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <TextField
-              label={T.settings.statuses.color}
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              sx={{ width: 110 }}
-            />
-            <TextField
-              label={T.settings.statuses.bg}
-              type="color"
-              value={bg}
-              onChange={(e) => setBg(e.target.value)}
-              sx={{ width: 110 }}
-            />
+              select
+              label={T.settings.statuses.group}
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+              sx={{ minWidth: 220 }}
+            >
+              {STATUS_GROUPS.map((g) => (
+                <MenuItem key={g.key} value={g.key}>
+                  <Chip
+                    label={g.label}
+                    size="small"
+                    sx={{ bgcolor: g.bg, color: g.color, fontWeight: 600 }}
+                  />
+                </MenuItem>
+              ))}
+            </TextField>
             <Box sx={{ flexGrow: 1 }} />
             <Box sx={{ textAlign: "center" }}>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
@@ -182,7 +207,7 @@ function StatusDialog({
               <Chip
                 label={label || "—"}
                 size="small"
-                sx={{ bgcolor: bg, color, fontWeight: 600, mt: 0.5 }}
+                sx={{ bgcolor: groupMeta.bg, color: groupMeta.color, fontWeight: 600, mt: 0.5 }}
               />
             </Box>
           </Stack>
@@ -200,16 +225,6 @@ function StatusDialog({
               label={
                 <Tooltip title={T.settings.statuses.defaultHint}>
                   <span>{T.settings.statuses.isDefault}</span>
-                </Tooltip>
-              }
-            />
-            <FormControlLabel
-              control={
-                <Checkbox checked={isTerminal} onChange={(e) => setIsTerminal(e.target.checked)} />
-              }
-              label={
-                <Tooltip title={T.settings.statuses.terminalHint}>
-                  <span>{T.settings.statuses.isTerminal}</span>
                 </Tooltip>
               }
             />
@@ -240,7 +255,7 @@ function StatusDialog({
                 </Stack>
               )}
             >
-              {others.map((s) => (
+              {toOptions.map((s) => (
                 <MenuItem key={s.key} value={s.key}>
                   <Checkbox checked={toKeys.includes(s.key)} size="small" />
                   <ListItemText primary={s.label} />
@@ -270,7 +285,7 @@ function StatusDialog({
                 </Stack>
               )}
             >
-              {others.map((s) => (
+              {fromOptions.map((s) => (
                 <MenuItem key={s.key} value={s.key}>
                   <Checkbox checked={fromKeys.includes(s.key)} size="small" />
                   <ListItemText primary={s.label} />
@@ -337,6 +352,12 @@ export default function StatusManager({
         cell: (c) => <StatusChip row={c.row.original} />,
       },
       {
+        accessorKey: "group",
+        header: T.settings.statuses.group,
+        cell: (c) =>
+          STATUS_GROUP_BY_KEY[c.row.original.group]?.label ?? c.row.original.group,
+      },
+      {
         id: "flags",
         header: "",
         enableSorting: false,
@@ -378,6 +399,28 @@ export default function StatusManager({
         },
       },
       {
+        id: "from",
+        header: T.settings.statuses.transitionsFrom,
+        enableSorting: false,
+        cell: (c) => {
+          const sources = transitions
+            .filter((t) => t.to_key === c.row.original.key)
+            .map((t) => labelByKey.get(t.from_key))
+            .filter(Boolean) as TicketStatusRow[];
+          return sources.length ? (
+            <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+              {sources.map((s) => (
+                <StatusChip key={s.key} row={s} />
+              ))}
+            </Stack>
+          ) : (
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              —
+            </Typography>
+          );
+        },
+      },
+      {
         id: "actions",
         header: "",
         enableSorting: false,
@@ -408,6 +451,7 @@ export default function StatusManager({
         <Box sx={{ flexGrow: 1 }} />
         <Button
           variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => {
             setEditing(null);
             setDialogOpen(true);
@@ -416,7 +460,7 @@ export default function StatusManager({
           {T.settings.statuses.newStatus}
         </Button>
       </Stack>
-      <DataTable data={statuses} columns={cols} />
+      <DataTable data={statuses} columns={cols} storageKey="settings-statuses" />
       {dialogOpen && (
         <StatusDialog
           key={editing?.key ?? "new"}

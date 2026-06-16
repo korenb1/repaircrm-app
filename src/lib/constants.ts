@@ -6,10 +6,42 @@ export const ITEM_KINDS: Record<ItemKind, string> = {
   product: "Товар",
 };
 
+// Fixed status groups. A status's color, terminal-ness and the allowed
+// transitions between statuses are all derived from its group (statuses no
+// longer carry hand-picked colors). Order here is the display order.
+export interface StatusGroup {
+  key: string;
+  label: string;
+  color: string; // text color
+  bg: string; // background color
+}
+
+export const STATUS_GROUPS: StatusGroup[] = [
+  { key: "new", label: "Нове", color: "#0288d1", bg: "#e1f5fe" },
+  { key: "in_work", label: "В роботі", color: "#2e7d32", bg: "#e8f5e9" },
+  { key: "postponed", label: "Відкладено", color: "#B76E00", bg: "#FEEFDB" },
+  { key: "ready", label: "Готове", color: "#2e7d32", bg: "#c8e6c9" },
+  { key: "delivery", label: "Доставка", color: "#ffffff", bg: "#0097a7" },
+  { key: "closed_success", label: "Закрито успішно", color: "#616161", bg: "#eeeeee" },
+  { key: "closed_fail", label: "Закрито неуспішно", color: "#B71D18", bg: "#FFE4DE" },
+];
+
+export const STATUS_GROUP_BY_KEY: Record<string, StatusGroup> = Object.fromEntries(
+  STATUS_GROUPS.map((g) => [g.key, g]),
+);
+
+// Terminal groups: moving a ticket into one of these closes it and opens the
+// close dialog (pay for closed_success, refund for closed_fail).
+export const TERMINAL_GROUPS = ["closed_success", "closed_fail"] as const;
+
+export function isTerminalGroup(group: string | undefined | null): boolean {
+  return group === "closed_success" || group === "closed_fail";
+}
+
 // UI string table — single source of Ukrainian labels.
 export const T = {
   appName: "RepairCRM",
-  nav: { workflows: "Заявки", contacts: "Контакти", settings: "Налаштування", profile: "Профіль" },
+  nav: { workflows: "Заявки", contacts: "Контакти", finances: "Фінанси", settings: "Налаштування", profile: "Профіль" },
   login: {
     title: "Вхід",
     email: "Email",
@@ -81,9 +113,99 @@ export const T = {
   contactCard: {
     tabs: { general: "Загальна", balance: "Баланс", tickets: "Заявки", devices: "Пристрої", documents: "Документи" },
   },
+  issue: {
+    title: "Видача заявки",
+    client: "Клієнт",
+    amount: "Сума до оплати",
+    account: "Рахунок",
+    accountRequired: "Оберіть рахунок",
+    comment: "Коментар",
+    noAccounts: "Спочатку створіть фінансовий рахунок у розділі «Фінанси».",
+    confirm: "Видати",
+    loading: "Завантаження…",
+    refundTitle: "Повернення коштів",
+    refundAmount: "Сума до повернення",
+    refundConfirm: "Повернути",
+  },
+  finances: {
+    title: "Фінанси",
+    createAccount: "Створити рахунок",
+    editAccount: "Редагувати рахунок",
+    types: { cash: "Готівка", cashless: "Безготівковий", card: "Картка" },
+    account: {
+      name: "Назва рахунку",
+      type: "Тип",
+      last4: "Останні 4 цифри картки",
+      last4Hint: "4 цифри, відображаються на картці.",
+      deleteTitle: "Видалити рахунок",
+      deleteConfirm: "Ви впевнені, що хочете видалити? Це незворотно.",
+      deleteNotEmpty: "Щоб видалити, рахунок має бути порожнім.",
+    },
+    revenue: "Дохід",
+    expense: "Витрата",
+    transfer: "Переказ",
+    filter: "Фільтр",
+    selectAccount: "Оберіть рахунок ліворуч.",
+    noAccounts: "Немає рахунків. Створіть перший.",
+    tx: {
+      contact: "Контакт",
+      amount: "Сума",
+      account: "Рахунок",
+      category: "Категорія",
+      comment: "Коментар",
+      newRevenue: "Новий дохід",
+      newExpense: "Нова витрата",
+      editRevenue: "Редагувати дохід",
+      editExpense: "Редагувати витрату",
+      deleteConfirm: "Видалити транзакцію?",
+    },
+    transferDialog: {
+      title: "Переказ між рахунками",
+      from: "З рахунку",
+      to: "На рахунок",
+      amount: "Сума",
+      comment: "Коментар",
+      sameError: "Оберіть різні рахунки.",
+      deleteConfirm: "Видалити переказ (обидві сторони)?",
+    },
+    filterPanel: {
+      title: "Фільтр",
+      period: "Період",
+      category: "Категорія",
+      allCategories: "Усі категорії",
+      apply: "Застосувати",
+      reset: "Скинути",
+    },
+    cols: {
+      date: "Дата",
+      user: "Користувач",
+      comment: "Коментар",
+      contact: "Контакт",
+      revenue: "Дохід",
+      expense: "Витрата",
+      remainder: "Залишок",
+    },
+    // Labels for the source payment kind on a ticket-linked ledger row.
+    txKinds: {
+      payment: "Оплата",
+      prepayment: "Передоплата",
+      advance: "Аванс",
+      payout: "Виплата",
+      correction: "Коригування",
+      refund: "Повернення",
+    },
+    ticketRef: "{kind} за заявкою",
+    transferOut: "Переказ на «{name}»",
+    transferIn: "Переказ з «{name}»",
+  },
   settings: {
     title: "Налаштування",
-    tabs: { company: "Компанія", catalog: "Каталог пристроїв", services: "Послуги та товари", statuses: "Статуси", documents: "Шаблони документів", users: "Користувачі" },
+    tabs: { company: "Компанія", catalog: "Довідник", services: "Послуги", products: "Товари", statuses: "Статуси", finances: "Фінанси", documents: "Шаблони документів", users: "Користувачі" },
+    directory: {
+      devices: "Каталог пристроїв",
+      malfunctions: "Несправності",
+      equipment: "Комплектація",
+    },
     users: {
       heading: "Створити користувача",
       email: "Email",
@@ -126,19 +248,42 @@ export const T = {
       deleteConfirm: "Видалити «{name}»? Усі вкладені записи буде видалено.",
     },
     services: {
-      kind: "Тип",
       name: "Назва",
-      sku: "Артикул",
       price: "Ціна",
-      newItem: "Додати позицію",
-      editItem: "Редагувати позицію",
+      costPrice: "Собівартість",
+      category: "Категорія",
+      parentCategory: "Батьківська категорія",
+      rootCategory: "— (корінь)",
+      newCategory: "Категорія",
+      editCategory: "Редагувати категорію",
+      newSubcategory: "Підкатегорія",
+      newService: "Послуга",
+      editService: "Редагувати послугу",
       deleteConfirm: "Видалити «{name}»?",
+      deleteCategoryConfirm: "Видалити категорію «{name}» з усім вмістом?",
+    },
+    products: {
+      name: "Назва",
+      price: "Ціна",
+      article: "Артикул",
+      barcode: "Штрихкод",
+      category: "Категорія",
+      parentCategory: "Батьківська категорія",
+      rootCategory: "— (корінь)",
+      newCategory: "Категорія",
+      editCategory: "Редагувати категорію",
+      newSubcategory: "Підкатегорія",
+      newProduct: "Товар",
+      editProduct: "Редагувати товар",
+      deleteConfirm: "Видалити «{name}»?",
+      deleteCategoryConfirm: "Видалити категорію «{name}» з усім вмістом?",
     },
     statuses: {
-      newStatus: "Додати статус",
+      newStatus: "Статус",
       editStatus: "Редагувати статус",
       key: "Ключ",
       label: "Назва",
+      group: "Група",
       color: "Колір тексту",
       bg: "Колір фону",
       sortOrder: "Порядок",
@@ -151,6 +296,18 @@ export const T = {
       keyHint: "Латиниця, без пробілів. Після створення не змінюється.",
       defaultHint: "Новим заявкам присвоюється цей статус.",
       terminalHint: "Кінцеві статуси виключаються з «Прострочені».",
+    },
+    finances: {
+      revenue: "Доходи",
+      expense: "Витрати",
+      name: "Назва категорії",
+      newCategory: "Категорія",
+      editCategory: "Редагувати категорію",
+      sortOrder: "Порядок",
+      isDefaultClosed: "За замовчуванням",
+      defaultClosedHint: "Застосовується до закритих заявок. Одна на тип.",
+      deleteConfirm: "Видалити категорію «{name}»?",
+      noCategories: "Немає категорій.",
     },
   },
   documents: {
@@ -200,6 +357,7 @@ export const T = {
     createAndOpen: "Створити й відкрити",
     cancel: "Скасувати",
     add: "Додати",
+    edit: "Редагувати",
     delete: "Видалити",
     notAssigned: "Не призначено",
   },

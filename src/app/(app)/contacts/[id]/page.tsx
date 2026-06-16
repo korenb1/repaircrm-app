@@ -22,6 +22,7 @@ export default async function ContactPage({
       balance={data.balance}
       payments={data.payments}
       tickets={data.tickets}
+      readyAt={data.readyAt}
       phones={data.phones}
       documents={data.documents}
     />

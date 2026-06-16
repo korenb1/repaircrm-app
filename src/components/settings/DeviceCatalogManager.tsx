@@ -16,7 +16,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { createClient } from "@/lib/supabase/client";
 import { T } from "@/lib/constants";
-import type { Group } from "@/lib/types";
+import type { EquipmentItem, Group, Malfunction } from "@/lib/types";
 
 interface Row {
   id: number;
@@ -151,7 +151,15 @@ function CatalogColumn({
   );
 }
 
-export default function DeviceCatalogManager({ groups }: { groups: Group[] }) {
+export default function DeviceCatalogManager({
+  groups,
+  malfunctions,
+  equipment,
+}: {
+  groups: Group[];
+  malfunctions: Malfunction[];
+  equipment: EquipmentItem[];
+}) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -240,106 +248,158 @@ export default function DeviceCatalogManager({ groups }: { groups: Group[] }) {
   }
 
   return (
-    <Stack
-      direction={{ xs: "column", md: "row" }}
-      spacing={1.5}
-      sx={{ alignItems: "stretch" }}
-    >
-      <CatalogColumn
-        title={T.settings.catalog.groups}
-        rows={groups}
-        selectedId={groupId}
-        onSelect={(id) => {
-          setGroupId(id);
-          setBrandId(null);
-          setModelId(null);
-        }}
-        onAdd={async (name) => {
-          await supabase.from("groups").insert({ name });
-          router.refresh();
-        }}
-        onRename={async (id, name) => {
-          await supabase.from("groups").update({ name }).eq("id", id);
-          router.refresh();
-        }}
-        onDelete={async (row) => {
-          await supabase.from("groups").delete().eq("id", row.id);
-          if (groupId === row.id) {
-            setGroupId(null);
-            setBrandId(null);
-            setModelId(null);
-          }
-          router.refresh();
-        }}
-      />
-      <CatalogColumn
-        title={T.settings.catalog.brands}
-        rows={brands}
-        selectedId={brandId}
-        disabled={!groupId}
-        placeholder={T.settings.catalog.pickGroup}
-        onSelect={(id) => {
-          setBrandId(id);
-          setModelId(null);
-        }}
-        onAdd={async (name) => {
-          await supabase.from("brands").insert({ group_id: groupId, name });
-          if (groupId) reloadBrands(groupId);
-        }}
-        onRename={async (id, name) => {
-          await supabase.from("brands").update({ name }).eq("id", id);
-          if (groupId) reloadBrands(groupId);
-        }}
-        onDelete={async (row) => {
-          await supabase.from("brands").delete().eq("id", row.id);
-          if (brandId === row.id) {
-            setBrandId(null);
-            setModelId(null);
-          }
-          if (groupId) reloadBrands(groupId);
-        }}
-      />
-      <CatalogColumn
-        title={T.settings.catalog.models}
-        rows={models}
-        selectedId={modelId}
-        disabled={!brandId}
-        placeholder={T.settings.catalog.pickBrand}
-        onSelect={(id) => setModelId(id)}
-        onAdd={async (name) => {
-          await supabase.from("models").insert({ brand_id: brandId, name });
-          if (brandId) reloadModels(brandId);
-        }}
-        onRename={async (id, name) => {
-          await supabase.from("models").update({ name }).eq("id", id);
-          if (brandId) reloadModels(brandId);
-        }}
-        onDelete={async (row) => {
-          await supabase.from("models").delete().eq("id", row.id);
-          if (modelId === row.id) setModelId(null);
-          if (brandId) reloadModels(brandId);
-        }}
-      />
-      <CatalogColumn
-        title={T.settings.catalog.modifications}
-        rows={mods}
-        selectedId={null}
-        disabled={!modelId}
-        placeholder={T.settings.catalog.pickModel}
-        onSelect={() => {}}
-        onAdd={async (name) => {
-          await supabase.from("modifications").insert({ model_id: modelId, name });
-          if (modelId) reloadMods(modelId);
-        }}
-        onRename={async (id, name) => {
-          await supabase.from("modifications").update({ name }).eq("id", id);
-          if (modelId) reloadMods(modelId);
-        }}
-        onDelete={async (row) => {
-          await supabase.from("modifications").delete().eq("id", row.id);
-          if (modelId) reloadMods(modelId);
-        }}
-      />
+    <Stack spacing={3}>
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+          {T.settings.directory.devices}
+        </Typography>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={1.5}
+          sx={{ alignItems: "stretch" }}
+        >
+          <CatalogColumn
+            title={T.settings.catalog.groups}
+            rows={groups}
+            selectedId={groupId}
+            onSelect={(id) => {
+              setGroupId(id);
+              setBrandId(null);
+              setModelId(null);
+            }}
+            onAdd={async (name) => {
+              await supabase.from("groups").insert({ name });
+              router.refresh();
+            }}
+            onRename={async (id, name) => {
+              await supabase.from("groups").update({ name }).eq("id", id);
+              router.refresh();
+            }}
+            onDelete={async (row) => {
+              await supabase.from("groups").delete().eq("id", row.id);
+              if (groupId === row.id) {
+                setGroupId(null);
+                setBrandId(null);
+                setModelId(null);
+              }
+              router.refresh();
+            }}
+          />
+          <CatalogColumn
+            title={T.settings.catalog.brands}
+            rows={brands}
+            selectedId={brandId}
+            disabled={!groupId}
+            placeholder={T.settings.catalog.pickGroup}
+            onSelect={(id) => {
+              setBrandId(id);
+              setModelId(null);
+            }}
+            onAdd={async (name) => {
+              await supabase.from("brands").insert({ group_id: groupId, name });
+              if (groupId) reloadBrands(groupId);
+            }}
+            onRename={async (id, name) => {
+              await supabase.from("brands").update({ name }).eq("id", id);
+              if (groupId) reloadBrands(groupId);
+            }}
+            onDelete={async (row) => {
+              await supabase.from("brands").delete().eq("id", row.id);
+              if (brandId === row.id) {
+                setBrandId(null);
+                setModelId(null);
+              }
+              if (groupId) reloadBrands(groupId);
+            }}
+          />
+          <CatalogColumn
+            title={T.settings.catalog.models}
+            rows={models}
+            selectedId={modelId}
+            disabled={!brandId}
+            placeholder={T.settings.catalog.pickBrand}
+            onSelect={(id) => setModelId(id)}
+            onAdd={async (name) => {
+              await supabase.from("models").insert({ brand_id: brandId, name });
+              if (brandId) reloadModels(brandId);
+            }}
+            onRename={async (id, name) => {
+              await supabase.from("models").update({ name }).eq("id", id);
+              if (brandId) reloadModels(brandId);
+            }}
+            onDelete={async (row) => {
+              await supabase.from("models").delete().eq("id", row.id);
+              if (modelId === row.id) setModelId(null);
+              if (brandId) reloadModels(brandId);
+            }}
+          />
+          <CatalogColumn
+            title={T.settings.catalog.modifications}
+            rows={mods}
+            selectedId={null}
+            disabled={!modelId}
+            placeholder={T.settings.catalog.pickModel}
+            onSelect={() => {}}
+            onAdd={async (name) => {
+              await supabase.from("modifications").insert({ model_id: modelId, name });
+              if (modelId) reloadMods(modelId);
+            }}
+            onRename={async (id, name) => {
+              await supabase.from("modifications").update({ name }).eq("id", id);
+              if (modelId) reloadMods(modelId);
+            }}
+            onDelete={async (row) => {
+              await supabase.from("modifications").delete().eq("id", row.id);
+              if (modelId) reloadMods(modelId);
+            }}
+          />
+        </Stack>
+      </Box>
+
+      <Box>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={1.5}
+          sx={{ alignItems: "stretch" }}
+        >
+          <CatalogColumn
+            title={T.settings.directory.malfunctions}
+            rows={malfunctions}
+            selectedId={null}
+            onSelect={() => {}}
+            onAdd={async (name) => {
+              await supabase.from("malfunctions").insert({ name });
+              router.refresh();
+            }}
+            onRename={async (id, name) => {
+              await supabase.from("malfunctions").update({ name }).eq("id", id);
+              router.refresh();
+            }}
+            onDelete={async (row) => {
+              await supabase.from("malfunctions").delete().eq("id", row.id);
+              router.refresh();
+            }}
+          />
+          <CatalogColumn
+            title={T.settings.directory.equipment}
+            rows={equipment}
+            selectedId={null}
+            onSelect={() => {}}
+            onAdd={async (name) => {
+              await supabase.from("equipment_items").insert({ name });
+              router.refresh();
+            }}
+            onRename={async (id, name) => {
+              await supabase.from("equipment_items").update({ name }).eq("id", id);
+              router.refresh();
+            }}
+            onDelete={async (row) => {
+              await supabase.from("equipment_items").delete().eq("id", row.id);
+              router.refresh();
+            }}
+          />
+        </Stack>
+      </Box>
     </Stack>
   );
 }

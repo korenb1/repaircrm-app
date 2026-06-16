@@ -34,6 +34,7 @@ export default function SnImeiField({
   required,
   error,
   helperText,
+  disabled,
 }: {
   value: string;
   onChange: (sn: string) => void;
@@ -41,6 +42,7 @@ export default function SnImeiField({
   required?: boolean;
   error?: boolean;
   helperText?: string;
+  disabled?: boolean;
 }) {
   const supabase = createClient();
   const [devices, setDevices] = useState<DeviceRow[]>([]);
@@ -66,6 +68,7 @@ export default function SnImeiField({
       <Autocomplete<DeviceRow, false, false, true>
         freeSolo
         fullWidth
+        disabled={disabled}
         options={devices}
         filterOptions={(opts, state) => {
           const q = state.inputValue.trim().toLowerCase();
@@ -108,7 +111,7 @@ export default function SnImeiField({
       />
       <Tooltip title="Згенерувати номер">
         <span>
-          <IconButton onClick={generate} disabled={generating} sx={{ mt: 1 }}>
+          <IconButton onClick={generate} disabled={generating || disabled} sx={{ mt: 1 }}>
             <AutorenewIcon />
           </IconButton>
         </span>

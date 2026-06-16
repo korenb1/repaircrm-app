@@ -30,6 +30,7 @@ export default function ClientAutocomplete({
   required,
   error,
   helperText,
+  disabled,
 }: {
   contacts: Contact[];
   value: Contact | null;
@@ -38,6 +39,7 @@ export default function ClientAutocomplete({
   required?: boolean;
   error?: boolean;
   helperText?: string;
+  disabled?: boolean;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [prefillPhone, setPrefillPhone] = useState("");
@@ -52,6 +54,7 @@ export default function ClientAutocomplete({
       <Autocomplete<Opt, false, false, false>
         options={contacts}
         value={value}
+        disabled={disabled}
         getOptionLabel={(o) => (isCreate(o) ? "" : contactLabel(o))}
         isOptionEqualToValue={(o, v) => !isCreate(o) && !isCreate(v) && o.id === v.id}
         filterOptions={(opts, state) => {

@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
@@ -32,6 +33,7 @@ const WIDTH = 88;
 const NAV = [
   { href: "/workflows", label: T.nav.workflows, icon: <AssignmentIcon /> },
   { href: "/contacts", label: T.nav.contacts, icon: <PeopleIcon /> },
+  { href: "/finances", label: T.nav.finances, icon: <AccountBalanceWalletIcon /> },
   { href: "/settings", label: T.nav.settings, icon: <SettingsIcon /> },
 ];
 

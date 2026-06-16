@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
@@ -13,6 +14,7 @@ const KIND_LABEL: Record<string, string> = {
   advance: "Аванс",
   payout: "Виплата",
   correction: "Коригування",
+  refund: "Повернення",
 };
 
 // One ledger event (payment rows + ticket reference rows).
@@ -20,6 +22,9 @@ interface Event {
   date: string;
   description: string;
   change: number | null; // null = informational (ticket created)
+  ticketId?: number; // present => the AXXXX token in the description links to the ticket card
+  ticketNumber?: string; // the AXXXX token to linkify within the description
+  device?: string; // "group brand model" shown after the ticket number
 }
 
 export default function BalanceTab({
@@ -27,35 +32,63 @@ export default function BalanceTab({
   balance,
   payments,
   tickets,
+  readyAt = {},
 }: {
   contactId: number;
   balance: number;
   payments: Payment[];
   tickets: TicketRow[];
+  readyAt?: Record<number, string>;
 }) {
   const [dialog, setDialog] = useState<null | PaymentKind>(null);
 
   const events = useMemo<Event[]>(() => {
     const rows: Event[] = [];
+    const ticketNumber = new Map<number, string>(tickets.map((t) => [t.id, t.number]));
+    const ticketDevice = new Map<number, string>(
+      tickets.map((t) => [
+        t.id,
+        [t.group?.name, t.brand?.name, t.model?.name].filter(Boolean).join(" "),
+      ]),
+    );
+
+    // Every payment reduces what the client owes us, so it is stored positive
+    // but shown as a negative change against the balance.
     for (const p of payments) {
+      const num = p.ticket_id != null ? ticketNumber.get(p.ticket_id) : undefined;
+      let description: string;
+      if (num) {
+        if (p.kind === "prepayment") description = `Передоплата заявки ${num}`;
+        else if (p.kind === "payment") description = `Оплата заявки ${num}`;
+        else description = `${KIND_LABEL[p.kind]} заявки ${num}`;
+      } else {
+        description = KIND_LABEL[p.kind] + (p.comment ? ` — ${p.comment}` : "");
+      }
       rows.push({
         date: p.created_at,
-        description:
-          KIND_LABEL[p.kind] +
-          (p.ticket_id ? ` (заявка #${p.ticket_id})` : "") +
-          (p.comment ? ` — ${p.comment}` : ""),
-        change: Number(p.amount),
+        description,
+        change: -Number(p.amount),
+        ticketId: num ? (p.ticket_id ?? undefined) : undefined,
+        ticketNumber: num,
+        device: num && p.ticket_id != null ? ticketDevice.get(p.ticket_id) : undefined,
       });
     }
+
+    // A ticket becomes a charge against the balance once it is ready/issued —
+    // dated by when it first reached that status, not when it was created.
     for (const t of tickets) {
+      if (t.status !== "ready" && t.status !== "issued") continue;
       rows.push({
-        date: t.created_at,
-        description: `Заявка ${t.number}`,
-        change: null,
+        date: readyAt[t.id] ?? t.created_at,
+        description: `Заявка ${t.number} готова`,
+        change: Number(t.price ?? 0),
+        ticketId: t.id,
+        ticketNumber: t.number,
+        device: ticketDevice.get(t.id),
       });
     }
     return rows.sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [payments, tickets]);
+  }, [payments, tickets, readyAt]);
 
   const cols = useMemo<ColumnDef<Event, any>[]>(
     () => [
@@ -64,7 +97,29 @@ export default function BalanceTab({
         header: "Дата і час",
         cell: (c) => formatDateTime(c.row.original.date),
       },
-      { accessorKey: "description", header: "Опис події" },
+      {
+        accessorKey: "description",
+        header: "Опис події",
+        cell: (c) => {
+          const { description, ticketId, ticketNumber, device } = c.row.original;
+          if (ticketId == null || !ticketNumber) return description;
+          const i = description.indexOf(ticketNumber);
+          if (i === -1) return description;
+          return (
+            <>
+              {description.slice(0, i)}
+              <Link
+                href={`/workflows/${ticketId}`}
+                style={{ color: "#1976d2", textDecoration: "none" }}
+              >
+                {ticketNumber}
+              </Link>
+              {device ? ` (${device})` : ""}
+              {description.slice(i + ticketNumber.length)}
+            </>
+          );
+        },
+      },
       {
         accessorKey: "change",
         header: "Зміна балансу, ₴",
@@ -123,7 +178,7 @@ export default function BalanceTab({
           + Коригування
         </Button>
       </Stack>
-      <DataTable data={events} columns={cols} dense maxHeight={420} emptyText="Немає подій" />
+      <DataTable data={events} columns={cols} dense maxHeight={420} emptyText="Немає подій" storageKey="contact-balance" />
       {dialog && (
         <PaymentDialog
           open

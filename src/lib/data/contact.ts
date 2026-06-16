@@ -54,11 +54,31 @@ export async function getContactDetail(id: number) {
     paid: totalsMap.get(t.id)?.paid ?? 0,
   }));
 
+  // A ticket's charge hits the balance when it first becomes ready/issued, not
+  // when it was created — pull that timestamp from the status-change log.
+  const readyAt: Record<number, string> = {};
+  const ticketIds = ticketRows.map((t) => t.id);
+  if (ticketIds.length > 0) {
+    const { data: statusEvents } = await supabase
+      .from("ticket_events")
+      .select("ticket_id, meta, created_at")
+      .in("ticket_id", ticketIds)
+      .eq("kind", "status_changed")
+      .order("created_at", { ascending: true });
+    for (const e of statusEvents ?? []) {
+      const to = (e.meta as { to?: string } | null)?.to;
+      if ((to === "ready" || to === "issued") && readyAt[e.ticket_id] === undefined) {
+        readyAt[e.ticket_id] = e.created_at;
+      }
+    }
+  }
+
   return {
     contact,
     balance: balanceRow?.balance ?? 0,
     payments: payments ?? [],
     tickets: ticketRows,
+    readyAt,
     phones: phones ?? [],
     documents: documents ?? [],
   };

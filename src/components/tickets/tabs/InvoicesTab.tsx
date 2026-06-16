@@ -29,11 +29,13 @@ export default function InvoicesTab({
   clientId,
   invoices,
   payments,
+  locked = false,
 }: {
   ticketId: number;
   clientId: number | null;
   invoices: Invoice[];
   payments: Payment[];
+  locked?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -130,7 +132,7 @@ export default function InvoicesTab({
       <Stack direction="row" spacing={1.5} sx={{
         mb: 1.5
       }}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={addInvoice} disabled={busy}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={addInvoice} disabled={busy || locked}>
           Рахунок
         </Button>
       </Stack>
@@ -148,17 +150,17 @@ export default function InvoicesTab({
           variant="contained"
           color="success"
           onClick={() => setDialog("prepayment")}
-          disabled={!clientId}
+          disabled={!clientId || locked}
         >
-          Передоплата
+          + Передоплата
         </Button>
         <Button
           variant="contained"
           color="error"
           onClick={() => setDialog("payout")}
-          disabled={!clientId}
+          disabled={!clientId || locked}
         >
-          Виплата
+          − Виплата
         </Button>
       </Stack>
       <DataTable

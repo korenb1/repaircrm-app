@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { Button, Menu, MenuItem } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { createClient } from "@/lib/supabase/client";
-import { useStatusMeta, useAllowedTargets } from "@/lib/status-context";
+import { useStatusMeta, useAllowedTargets, useStatuses } from "@/lib/status-context";
+import { isTerminalGroup } from "@/lib/constants";
+import IssueTicketDialog from "@/components/tickets/IssueTicketDialog";
 
 export default function StatusBadge({
   ticketId,
@@ -15,8 +17,12 @@ export default function StatusBadge({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const { byKey } = useStatuses();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [current, setCurrent] = useState<string>(status);
+  // The terminal status the user is moving into (drives the close dialog), or
+  // null when no close dialog is open.
+  const [closing, setClosing] = useState<string | null>(null);
 
   // The virtualized table recycles row components, so a reused StatusBadge must
   // resync to the new row's status prop — otherwise it keeps showing the
@@ -30,6 +36,12 @@ export default function StatusBadge({
   async function change(next: string) {
     setAnchor(null);
     if (next === current) return;
+    // Closing a ticket (moving into a terminal group) books a payment or refund
+    // first — defer the status write to the close dialog.
+    if (isTerminalGroup(byKey.get(next)?.group)) {
+      setClosing(next);
+      return;
+    }
     setSaving(true);
     const prev = current;
     setCurrent(next);
@@ -96,6 +108,18 @@ export default function StatusBadge({
           </MenuItem>
         ))}
       </Menu>
+      {closing && (
+        <IssueTicketDialog
+          ticketId={ticketId}
+          targetStatus={closing}
+          mode={byKey.get(closing)?.group === "closed_fail" ? "refund" : "pay"}
+          onCancel={() => setClosing(null)}
+          onIssued={() => {
+            setCurrent(closing);
+            setClosing(null);
+          }}
+        />
+      )}
     </>
   );
 }

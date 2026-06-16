@@ -1,0 +1,1 @@
+update ticket_statuses set color='#B76E00' where "group"='postponed';

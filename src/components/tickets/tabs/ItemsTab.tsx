@@ -34,6 +34,7 @@ export default function ItemsTab({
   catalog,
   conclusion,
   registerSave,
+  locked = false,
 }: {
   ticketId: number;
   items: TicketItem[];
@@ -41,11 +42,13 @@ export default function ItemsTab({
   catalog: ServiceCatalogItem[];
   conclusion: string | null;
   registerSave?: (fn: (() => Promise<void>) | null) => void;
+  locked?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
 
   const [technician, setTechnician] = useState<Profile | null>(null);
+  const [technicianError, setTechnicianError] = useState(false);
   const [picked, setPicked] = useState<ServiceCatalogItem | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | null>(null);
@@ -66,6 +69,10 @@ export default function ItemsTab({
 
   async function addItem() {
     if (!name && !picked) return;
+    if (!technician) {
+      setTechnicianError(true);
+      return;
+    }
     setBusy(true);
     await supabase.from("ticket_items").insert({
       ticket_id: ticketId,
@@ -154,6 +161,7 @@ export default function ItemsTab({
             size="small"
             color="error"
             title={T.common.delete}
+            disabled={locked}
             onClick={() => setPendingDelete(c.row.original)}
           >
             <DeleteIcon fontSize="small" />
@@ -161,7 +169,7 @@ export default function ItemsTab({
         ),
       },
     ],
-    [profileById],
+    [profileById, locked],
   );
 
   return (
@@ -178,14 +186,27 @@ export default function ItemsTab({
             options={profiles}
             getOptionLabel={(o) => o.full_name}
             value={technician}
-            onChange={(_, o) => setTechnician(o)}
-            renderInput={(p) => <TextField {...p} label="Технік" size="small" />}
+            disabled={locked}
+            onChange={(_, o) => {
+              setTechnician(o);
+              if (o) setTechnicianError(false);
+            }}
+            renderInput={(p) => (
+              <TextField
+                {...p}
+                label="Технік"
+                size="small"
+                required
+                error={technicianError}
+              />
+            )}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 3 }}>
           <Autocomplete
             freeSolo
             options={catalog}
+            disabled={locked}
             getOptionLabel={(o) => (typeof o === "string" ? o : o.name)}
             value={picked}
             onInputChange={(_, v) => setName(v)}
@@ -214,6 +235,7 @@ export default function ItemsTab({
             size="small"
             value={price}
             onValueChange={(v) => setPrice(v)}
+            disabled={locked}
             fullWidth
           />
         </Grid>
@@ -224,6 +246,7 @@ export default function ItemsTab({
             value={qty}
             onValueChange={(v) => setQty(v)}
             min={1}
+            disabled={locked}
             fullWidth
           />
         </Grid>
@@ -232,7 +255,7 @@ export default function ItemsTab({
             variant="contained"
             startIcon={<AddIcon />}
             onClick={addItem}
-            disabled={busy}
+            disabled={busy || locked}
             fullWidth
           >
             {T.common.add}
