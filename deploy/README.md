@@ -84,7 +84,9 @@ Let them propagate *before* reloading Caddy, or ACME issuance fails.
    ```
 
 4. **App env, per environment** — copy `deploy/env/app.env.example` to
-   `/srv/repaircrm/<env>/app/.env.production`, fill in, `chmod 600`.
+   `/srv/repaircrm/<env>/app/.env.production`, fill in, then:
+   sudo chown deploy:deploy /srv/repaircrm/<env>/app/.env.production
+   sudo chmod 600 /srv/repaircrm/<env>/app/.env.production
    `SUPABASE_JWT_SECRET` must be byte-identical to that stack's `JWT_SECRET`.
 
 5. **Caddy**
