@@ -35,3 +35,5 @@ supabase/.temp
 .playwright-cli/
 
 .claude/
+.claude/skills/
+.claude/skills/playwright-cli/
