@@ -8,7 +8,7 @@
 # fill in the four env files and run deploy.sh (see deploy/README.md).
 set -euo pipefail
 
-REPO="${REPO:?set REPO=git@github.com:korenb1/repaircrm-app.git}"
+REPO="https://github.com/korenb1/repaircrm-app.git"
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 
@@ -65,6 +65,9 @@ log "layout"
 mkdir -p /srv/repaircrm/landing /var/backups/repaircrm
 for env in prod staging; do
   mkdir -p "/srv/repaircrm/$env"
+done
+chown -R deploy:deploy /srv/repaircrm
+for env in prod staging; do
   if [ ! -d "/srv/repaircrm/$env/app/.git" ]; then
     sudo -u deploy git clone "$REPO" "/srv/repaircrm/$env/app"
   fi
