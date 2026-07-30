@@ -93,6 +93,7 @@ revoke all on "user", "session", "account", "verification", "passkey"
   from anon, authenticated, service_role;
 
 -- ------------------------------------------------------------
+-- Add foreign key constraint to profiles now that user table exists.
 -- Re-point profiles at the new identity table (fresh start on
 -- users: existing auth.users accounts are abandoned, admin
 -- recreates users via the settings UI / create-admin script).
@@ -100,7 +101,6 @@ revoke all on "user", "session", "account", "verification", "passkey"
 -- ------------------------------------------------------------
 delete from profiles;
 
-alter table profiles drop constraint profiles_id_fkey;
 alter table profiles
   add constraint profiles_id_fkey
   foreign key (id) references "user" ("id") on delete cascade;

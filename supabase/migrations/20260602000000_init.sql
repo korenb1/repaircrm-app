@@ -2,9 +2,10 @@
 -- Repair CRM — initial schema
 -- ============================================================
 
--- profiles: managers & technicians (extends auth.users)
+-- profiles: managers & technicians (extends Better Auth user table)
+-- Note: foreign key will be added by 20260716000000_better_auth.sql after user table exists
 create table profiles (
-  id uuid primary key references auth.users on delete cascade,
+  id uuid primary key,
   full_name text not null,
   role text not null default 'technician' check (role in ('admin','manager','technician')),
   created_at timestamptz default now()
