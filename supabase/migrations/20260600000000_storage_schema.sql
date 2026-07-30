@@ -9,7 +9,7 @@
 create schema if not exists storage;
 
 -- storage.buckets: defines storage buckets (like S3 buckets)
-create table storage.buckets (
+create table if not exists storage.buckets (
   id text primary key,
   name text not null unique,
   owner uuid,
@@ -22,7 +22,7 @@ create table storage.buckets (
 );
 
 -- storage.objects: tracks uploaded files
-create table storage.objects (
+create table if not exists storage.objects (
   id uuid primary key default gen_random_uuid(),
   bucket_id text references storage.buckets(id) on delete cascade,
   name text not null,
