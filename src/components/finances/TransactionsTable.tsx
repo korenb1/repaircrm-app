@@ -6,8 +6,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
-import { T } from "@/lib/constants";
-import { formatUAH, formatDate } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
+import type { Dict } from "@/lib/i18n";
+import { formatDate } from "@/lib/money";
 import type { FinanceTransactionRow, PaymentKind } from "@/lib/types";
 
 export interface LedgerRow {
@@ -25,7 +26,7 @@ const linkSx = {
   textDecoration: "none",
 } as const;
 
-function kindLabel(tx: FinanceTransactionRow): string {
+function kindLabel(T: Dict, tx: FinanceTransactionRow): string {
   const k = tx.source_kind as PaymentKind | null;
   if (k) return T.finances.txKinds[k];
   return isRevenue(tx.kind)
@@ -34,6 +35,7 @@ function kindLabel(tx: FinanceTransactionRow): string {
 }
 
 function CommentCell({ tx, label }: { tx: FinanceTransactionRow; label: string | null }) {
+  const T = useT();
   const category = tx.category?.name ?? null;
 
   let primary: React.ReactNode;
@@ -45,7 +47,7 @@ function CommentCell({ tx, label }: { tx: FinanceTransactionRow; label: string |
       .join(" ");
     primary = (
       <>
-        {T.finances.ticketRef.replace("{kind}", kindLabel(tx))}{" "}
+        {T.finances.ticketRef.replace("{kind}", kindLabel(T, tx))}{" "}
         <Link href={`/workflows/${tx.ticket.id}`} style={linkSx}>
           #{tx.ticket.number}
         </Link>
@@ -81,6 +83,8 @@ export default function TransactionsTable({
   onEdit: (tx: FinanceTransactionRow) => void;
   onDelete: (tx: FinanceTransactionRow) => void;
 }) {
+  const T = useT();
+  const money = useMoney();
   const cols = useMemo<ColumnDef<LedgerRow, any>[]>(
     () => [
       {
@@ -123,14 +127,14 @@ export default function TransactionsTable({
         cell: (c) =>
           isRevenue(c.row.original.tx.kind) ? (
             <Typography sx={{ color: "#2e7d32", fontWeight: 600 }}>
-              {formatUAH(c.row.original.tx.amount)}
+              {money(c.row.original.tx.amount)}
             </Typography>
           ) : (
             "—"
           ),
         footer: () => (
           <Typography sx={{ color: "#2e7d32", fontWeight: 700 }}>
-            {formatUAH(revenueTotal)}
+            {money(revenueTotal)}
           </Typography>
         ),
       },
@@ -140,21 +144,21 @@ export default function TransactionsTable({
         cell: (c) =>
           !isRevenue(c.row.original.tx.kind) ? (
             <Typography sx={{ color: "#c62828", fontWeight: 600 }}>
-              {formatUAH(c.row.original.tx.amount)}
+              {money(c.row.original.tx.amount)}
             </Typography>
           ) : (
             "—"
           ),
         footer: () => (
           <Typography sx={{ color: "#c62828", fontWeight: 700 }}>
-            {formatUAH(expenseTotal)}
+            {money(expenseTotal)}
           </Typography>
         ),
       },
       {
         id: "remainder",
         header: T.finances.cols.remainder,
-        cell: (c) => formatUAH(c.row.original.remainder),
+        cell: (c) => money(c.row.original.remainder),
       },
       {
         id: "actions",
@@ -172,7 +176,7 @@ export default function TransactionsTable({
         ),
       },
     ],
-    [onEdit, onDelete, revenueTotal, expenseTotal],
+    [onEdit, onDelete, revenueTotal, expenseTotal, T, money],
   );
 
   return (

@@ -1,5 +1,8 @@
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { auth } from "@/lib/auth";
+import { getUser } from "@/lib/auth-server";
 import SettingsView from "@/components/settings/SettingsView";
 import type {
   Group,
@@ -21,9 +24,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   const { data: me } = user
     ? await supabase.from("profiles").select("role").eq("id", user.id).single()
     : { data: null };
@@ -32,21 +33,27 @@ export default async function SettingsPage() {
   let users: AdminUser[] = [];
   if (isAdmin) {
     const admin = createAdminClient();
-    const [{ data: authData }, { data: profiles }] = await Promise.all([
-      admin.auth.admin.listUsers({ perPage: 1000 }),
+    const [authData, { data: profiles }] = await Promise.all([
+      auth.api.listUsers({
+        query: { limit: 1000 },
+        headers: await headers(),
+      }),
       admin.from("profiles").select("*"),
     ]);
     const byId = new Map(
       ((profiles ?? []) as Profile[]).map((p) => [p.id, p]),
     );
-    users = (authData?.users ?? []).map((u) => {
+    users = (authData.users ?? []).map((u) => {
       const p = byId.get(u.id);
       return {
         id: u.id,
         email: u.email ?? "",
         full_name: p?.full_name ?? "",
         role: p?.role ?? "technician",
-        created_at: u.created_at,
+        created_at:
+          u.createdAt instanceof Date
+            ? u.createdAt.toISOString()
+            : String(u.createdAt),
       };
     });
     users.sort((a, b) => a.created_at.localeCompare(b.created_at));

@@ -8,7 +8,7 @@ import FinanceCategoriesManager from "@/components/settings/FinanceCategoriesMan
 import DocumentTemplatesManager from "@/components/settings/DocumentTemplatesManager";
 import CompanySettingsManager from "@/components/settings/CompanySettingsManager";
 import UsersManager from "@/components/settings/UsersManager";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type {
   Group,
   ServiceCatalogItem,
@@ -50,6 +50,7 @@ export default function SettingsView({
   isAdmin?: boolean;
   users?: AdminUser[];
 }) {
+  const T = useT();
   const [tab, setTab] = useState(0);
 
   return (

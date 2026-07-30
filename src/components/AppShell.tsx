@@ -25,17 +25,19 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/context";
 
 const WIDTH = 88;
 
-const NAV = [
-  { href: "/workflows", label: T.nav.workflows, icon: <AssignmentIcon /> },
-  { href: "/contacts", label: T.nav.contacts, icon: <PeopleIcon /> },
-  { href: "/finances", label: T.nav.finances, icon: <AccountBalanceWalletIcon /> },
-  { href: "/settings", label: T.nav.settings, icon: <SettingsIcon /> },
-];
+// Nav entries: hrefs/icons are static; labels are resolved per-render from the
+// active locale dictionary (see NAV() below).
+const NAV_ITEMS = [
+  { href: "/workflows", labelKey: "workflows", icon: <AssignmentIcon /> },
+  { href: "/contacts", labelKey: "contacts", icon: <PeopleIcon /> },
+  { href: "/finances", labelKey: "finances", icon: <AccountBalanceWalletIcon /> },
+  { href: "/settings", labelKey: "settings", icon: <SettingsIcon /> },
+] as const;
 
 export default function AppShell({
   children,
@@ -48,9 +50,15 @@ export default function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
+  const T = useT();
   const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const NAV = NAV_ITEMS.map((n) => ({
+    href: n.href,
+    icon: n.icon,
+    label: T.nav[n.labelKey],
+  }));
 
   // Title for the current section, derived from the nav entry that matches the
   // active route (so pages no longer render their own heading).
@@ -59,7 +67,7 @@ export default function AppShell({
     (pathname.startsWith("/profile") ? T.nav.profile : "");
 
   async function logout() {
-    await supabase.auth.signOut();
+    await authClient.signOut();
     router.push("/login");
     router.refresh();
   }
@@ -157,7 +165,7 @@ export default function AppShell({
             <ListItemIcon>
               <LogoutIcon fontSize="small" />
             </ListItemIcon>
-            Вийти
+            {T.nav.logout}
           </MenuItem>
         </Menu>
       </Box>

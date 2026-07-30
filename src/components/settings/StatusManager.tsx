@@ -30,7 +30,8 @@ import FlagIcon from "@mui/icons-material/Flag";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import { createClient } from "@/lib/supabase/client";
-import { T, STATUS_GROUPS, STATUS_GROUP_BY_KEY, isTerminalGroup } from "@/lib/constants";
+import { STATUS_GROUPS, STATUS_GROUP_BY_KEY, isTerminalGroup } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { TicketStatusRow, StatusTransition } from "@/lib/types";
 
 // A ticket in `fromGroup` may transition to `toGroup` unless:
@@ -66,6 +67,7 @@ function StatusDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
   const isEdit = Boolean(initial);
 
   const [key, setKey] = useState(initial?.key ?? "");
@@ -192,7 +194,7 @@ function StatusDialog({
               {STATUS_GROUPS.map((g) => (
                 <MenuItem key={g.key} value={g.key}>
                   <Chip
-                    label={g.label}
+                    label={T.statusGroups[g.key as keyof typeof T.statusGroups]}
                     size="small"
                     sx={{ bgcolor: g.bg, color: g.color, fontWeight: 600 }}
                   />
@@ -231,7 +233,7 @@ function StatusDialog({
           </Stack>
 
           <Divider textAlign="left">
-            <Typography variant="subtitle2">Переходи</Typography>
+            <Typography variant="subtitle2">{T.settings.statuses.transitions}</Typography>
           </Divider>
 
           <Box>
@@ -318,6 +320,7 @@ export default function StatusManager({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
   const [editing, setEditing] = useState<TicketStatusRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -331,9 +334,7 @@ export default function StatusManager({
       return;
     const { error } = await supabase.from("ticket_statuses").delete().eq("key", row.key);
     if (error) {
-      window.alert(
-        "Неможливо видалити: статус використовується заявками або переходами.",
-      );
+      window.alert(T.settings.statuses.deleteInUse);
       return;
     }
     router.refresh();
@@ -355,7 +356,8 @@ export default function StatusManager({
         accessorKey: "group",
         header: T.settings.statuses.group,
         cell: (c) =>
-          STATUS_GROUP_BY_KEY[c.row.original.group]?.label ?? c.row.original.group,
+          T.statusGroups[c.row.original.group as keyof typeof T.statusGroups] ??
+          c.row.original.group,
       },
       {
         id: "flags",
@@ -442,7 +444,7 @@ export default function StatusManager({
         ),
       },
     ],
-    [transitions, labelByKey],
+    [transitions, labelByKey, T],
   );
 
   return (

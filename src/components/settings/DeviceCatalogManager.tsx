@@ -15,7 +15,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { EquipmentItem, Group, Malfunction } from "@/lib/types";
 
 interface Row {
@@ -44,6 +44,7 @@ function CatalogColumn({
   disabled?: boolean;
   placeholder?: string;
 }) {
+  const T = useT();
   const [adding, setAdding] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -160,6 +161,7 @@ export default function DeviceCatalogManager({
   malfunctions: Malfunction[];
   equipment: EquipmentItem[];
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
 
@@ -186,7 +188,7 @@ export default function DeviceCatalogManager({
     return () => {
       active = false;
     };
-  }, [supabase, groupId]);
+  }, [groupId]);
 
   useEffect(() => {
     let active = true;
@@ -203,7 +205,7 @@ export default function DeviceCatalogManager({
     return () => {
       active = false;
     };
-  }, [supabase, brandId]);
+  }, [brandId]);
 
   useEffect(() => {
     let active = true;
@@ -220,7 +222,7 @@ export default function DeviceCatalogManager({
     return () => {
       active = false;
     };
-  }, [supabase, modelId]);
+  }, [modelId]);
 
   async function reloadBrands(gid: number) {
     const { data } = await supabase

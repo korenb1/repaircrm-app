@@ -23,8 +23,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
-import { T, ITEM_KINDS } from "@/lib/constants";
-import { formatUAH } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
 import type { Profile, ServiceCatalogItem, TicketItem } from "@/lib/types";
 
 export default function ItemsTab({
@@ -46,6 +45,8 @@ export default function ItemsTab({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
+  const money = useMoney();
 
   const [technician, setTechnician] = useState<Profile | null>(null);
   const [technicianError, setTechnicianError] = useState(false);
@@ -114,32 +115,32 @@ export default function ItemsTab({
     () => [
       {
         accessorKey: "name",
-        header: "Назва",
+        header: T.ticket.items.name,
         cell: (c) => (
           <Box>
             <Typography variant="body2">{c.row.original.name}</Typography>
             <Typography variant="caption" sx={{
               color: "text.secondary"
             }}>
-              {ITEM_KINDS[c.row.original.kind]}
+              {T.itemKinds[c.row.original.kind]}
             </Typography>
           </Box>
         ),
       },
       {
         accessorKey: "price",
-        header: "Ціна",
-        cell: (c) => formatUAH(c.row.original.price),
+        header: T.ticket.items.price,
+        cell: (c) => money(c.row.original.price),
       },
-      { accessorKey: "qty", header: "К-сть" },
+      { accessorKey: "qty", header: T.ticket.items.qty },
       {
         id: "amount",
-        header: "Сума",
-        cell: (c) => formatUAH(Number(c.row.original.price) * Number(c.row.original.qty)),
+        header: T.ticket.items.amount,
+        cell: (c) => money(Number(c.row.original.price) * Number(c.row.original.qty)),
       },
       {
         id: "technician",
-        header: "Технік",
+        header: T.ticket.items.technician,
         cell: (c) => {
           const t = c.row.original.technician_id
             ? profileById.get(c.row.original.technician_id)
@@ -169,7 +170,7 @@ export default function ItemsTab({
         ),
       },
     ],
-    [profileById, locked],
+    [profileById, locked, T, money],
   );
 
   return (
@@ -194,7 +195,7 @@ export default function ItemsTab({
             renderInput={(p) => (
               <TextField
                 {...p}
-                label="Технік"
+                label={T.ticket.items.technician}
                 size="small"
                 required
                 error={technicianError}
@@ -208,6 +209,14 @@ export default function ItemsTab({
             options={catalog}
             disabled={locked}
             getOptionLabel={(o) => (typeof o === "string" ? o : o.name)}
+            renderOption={(props, o) => {
+              const { key: _key, ...rest } = props as typeof props & { key?: string };
+              return (
+                <li {...rest} key={typeof o === "string" ? o : o.id}>
+                  {typeof o === "string" ? o : o.name}
+                </li>
+              );
+            }}
             value={picked}
             onInputChange={(_, v) => setName(v)}
             onChange={(_, o) => {
@@ -222,16 +231,16 @@ export default function ItemsTab({
             renderInput={(p) => (
               <TextField
                 {...p}
-                label="Робота, послуга або товар"
+                label={T.ticket.items.pickItem}
                 size="small"
-                placeholder="Назва, код, SKU"
+                placeholder={T.ticket.items.pickItemPlaceholder}
               />
             )}
           />
         </Grid>
         <Grid size={{ xs: 6, sm: 2 }}>
           <NumberField
-            label="Ціна"
+            label={T.ticket.items.price}
             size="small"
             value={price}
             onValueChange={(v) => setPrice(v)}
@@ -241,7 +250,7 @@ export default function ItemsTab({
         </Grid>
         <Grid size={{ xs: 6, sm: 2 }}>
           <NumberField
-            label="К-сть"
+            label={T.ticket.items.qty}
             size="small"
             value={qty}
             onValueChange={(v) => setQty(v)}
@@ -262,7 +271,7 @@ export default function ItemsTab({
           </Button>
         </Grid>
       </Grid>
-      <DataTable data={items} columns={cols} dense maxHeight={360} emptyText="Немає позицій" storageKey="ticket-items" />
+      <DataTable data={items} columns={cols} dense maxHeight={360} emptyText={T.ticket.items.empty} storageKey="ticket-items" />
       <Stack
         spacing={0.5}
         sx={{
@@ -270,17 +279,17 @@ export default function ItemsTab({
           mt: 1.5
         }}>
         <Typography variant="body2">
-          Підсумок: <b>{formatUAH(subtotal)}</b>
+          {T.ticket.items.subtotal}: <b>{money(subtotal)}</b>
         </Typography>
         <Typography variant="subtitle1">
-          Разом: <b>{formatUAH(subtotal)}</b>
+          {T.ticket.items.total}: <b>{money(subtotal)}</b>
         </Typography>
       </Stack>
       <Stack spacing={2} sx={{
         mt: 2
       }}>
         <TextField
-          label="Висновок / рекомендації клієнту"
+          label={T.ticket.items.conclusion}
           value={concl}
           onChange={(e) => setConcl(e.target.value)}
           fullWidth

@@ -10,9 +10,10 @@ import PhoneListEditor, {
   isPhoneDraftValid,
 } from "@/components/contacts/PhoneListEditor";
 import { splitStored, toE164, validatePhone } from "@/lib/phone";
+import { useT } from "@/lib/i18n/context";
 import type { Contact, ContactPhone } from "@/lib/types";
 
-const FILL = "Заповніть це поле";
+
 
 export default function GeneralTab({
   contact,
@@ -24,6 +25,7 @@ export default function GeneralTab({
   registerSave?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const router = useRouter();
+  const T = useT();
   const supabase = createClient();
 
   const [firstName, setFirstName] = useState(contact.first_name);
@@ -53,7 +55,7 @@ export default function GeneralTab({
         const all = (data ?? []).flatMap((r) => r.tags ?? []);
         setTagOptions(Array.from(new Set(all)).sort());
       });
-  }, [supabase]);
+  }, []);
 
   // First name and at least one valid phone are mandatory.
   const phoneValid =
@@ -109,41 +111,41 @@ export default function GeneralTab({
     <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
-            label="Ім'я"
+            label={T.contacts.fields.firstName}
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             fullWidth
             required
             error={attempted && !firstName.trim()}
-            helperText={attempted && !firstName.trim() ? FILL : undefined}
+            helperText={attempted && !firstName.trim() ? T.common.fillRequired : undefined}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField label="Прізвище" value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth />
+          <TextField label={T.contacts.fields.lastName} value={lastName} onChange={(e) => setLastName(e.target.value)} fullWidth />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
+          <TextField label={T.contacts.fields.email} value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
         </Grid>
         <Grid size={12}>
           <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
-            Телефони
+            {T.contacts.fields.phones}
           </Typography>
           <PhoneListEditor value={phoneList} onChange={setPhoneList} showRequired={attempted} />
         </Grid>
         <Grid size={12}>
-          <TextField label="Адреса" value={address} onChange={(e) => setAddress(e.target.value)} fullWidth />
+          <TextField label={T.contacts.fields.address} value={address} onChange={(e) => setAddress(e.target.value)} fullWidth />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <TextField label="Дисконтна картка" value={discountCard} onChange={(e) => setDiscountCard(e.target.value)} fullWidth />
+          <TextField label={T.contacts.fields.discountCard} value={discountCard} onChange={(e) => setDiscountCard(e.target.value)} fullWidth />
         </Grid>
         <Grid size={{ xs: 6, sm: 4 }}>
-          <NumberField label="Знижка на послуги, %" value={discountService} onValueChange={(v) => setDiscountService(v)} min={0} max={100} fullWidth />
+          <NumberField label={T.contacts.fields.serviceDiscount} value={discountService} onValueChange={(v) => setDiscountService(v)} min={0} max={100} fullWidth />
         </Grid>
         <Grid size={{ xs: 6, sm: 4 }}>
-          <NumberField label="Знижка на товари, %" value={discountGoods} onValueChange={(v) => setDiscountGoods(v)} min={0} max={100} fullWidth />
+          <NumberField label={T.contacts.fields.productDiscount} value={discountGoods} onValueChange={(v) => setDiscountGoods(v)} min={0} max={100} fullWidth />
         </Grid>
         <Grid size={12}>
-          <TextField label="Нотатка" value={note} onChange={(e) => setNote(e.target.value)} fullWidth multiline minRows={2} />
+          <TextField label={T.contacts.fields.note} value={note} onChange={(e) => setNote(e.target.value)} fullWidth multiline minRows={2} />
         </Grid>
         <Grid size={12}>
           <TagsInput value={tags} onChange={setTags} options={tagOptions} />

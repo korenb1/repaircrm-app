@@ -23,8 +23,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
-import { formatUAH } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
 import type { FinanceAccountType, FinancialAccount } from "@/lib/types";
 
 const ACCENT: Record<FinanceAccountType, string> = {
@@ -54,6 +53,8 @@ export default function AccountCard({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
+  const money = useMoney();
   const accent = ACCENT[account.type];
   const masked =
     account.type === "card" && account.card_last4
@@ -149,7 +150,7 @@ export default function AccountCard({
         variant="h5"
         sx={{ fontWeight: 800, color: "text.primary", mt: 2.5 }}
       >
-        {formatUAH(balance)}
+        {money(balance)}
       </Typography>
 
       <IconButton

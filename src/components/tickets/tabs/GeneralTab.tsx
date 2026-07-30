@@ -18,6 +18,7 @@ import NumberField from "@/components/NumberField";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
+import { useT } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
 import { parseEntries, formatEntries, mergePending } from "@/lib/directory";
 import UserAvatar from "@/components/ui/UserAvatar";
@@ -36,7 +37,6 @@ function clientName(c: ClientLite) {
   return [c.first_name, c.last_name].filter(Boolean).join(" ");
 }
 
-const FILL = "Заповніть це поле";
 
 export default function GeneralTab({
   ticket,
@@ -49,6 +49,7 @@ export default function GeneralTab({
   registerSave?: (fn: (() => Promise<void>) | null) => void;
   locked?: boolean;
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
 
@@ -100,7 +101,7 @@ export default function GeneralTab({
       .select("*")
       .order("first_name")
       .then(({ data }) => setContacts(data ?? []));
-  }, [clientId, contacts.length, supabase]);
+  }, [clientId, contacts.length]);
 
   // Load the directory option lists for the malfunction / equipment chip
   // autocompletes (free text is still allowed on top of these).
@@ -117,7 +118,7 @@ export default function GeneralTab({
       .order("sort_order")
       .order("name")
       .then(({ data }) => setEquipmentOpts((data ?? []).map((r) => r.name)));
-  }, [supabase]);
+  }, []);
 
   // Apply an existing device picked from the SN/IMEI search: autofill catalog.
   function applyDevice(d: DeviceRow) {
@@ -211,10 +212,10 @@ export default function GeneralTab({
             renderInput={(p) => (
               <TextField
                 {...p}
-                label="Менеджер"
+                label={T.ticket.general.manager}
                 required
                 error={attempted && !manager}
-                helperText={attempted && !manager ? FILL : undefined}
+                helperText={attempted && !manager ? T.common.fillRequired : undefined}
                 slotProps={{
                   ...p.slotProps,
                   input: {
@@ -260,10 +261,10 @@ export default function GeneralTab({
             renderInput={(p) => (
               <TextField
                 {...p}
-                label="Технік"
+                label={T.ticket.general.technician}
                 required
                 error={attempted && !technician}
-                helperText={attempted && !technician ? FILL : undefined}
+                helperText={attempted && !technician ? T.common.fillRequired : undefined}
                 slotProps={{
                   ...p.slotProps,
                   input: {
@@ -311,7 +312,7 @@ export default function GeneralTab({
                   </Typography>
                 )}
               </Box>
-              <Tooltip title="Видалити клієнта">
+              <Tooltip title={T.ticket.general.deleteClient}>
                 <IconButton
                   size="small"
                   disabled={locked}
@@ -342,7 +343,7 @@ export default function GeneralTab({
               }
               required
               error={attempted && !clientId}
-              helperText={attempted && !clientId ? FILL : undefined}
+              helperText={attempted && !clientId ? T.common.fillRequired : undefined}
             />
           )}
         </Grid>
@@ -354,7 +355,7 @@ export default function GeneralTab({
             disabled={locked}
             required
             error={attempted && !snImei.trim()}
-            helperText={attempted && !snImei.trim() ? FILL : undefined}
+            helperText={attempted && !snImei.trim() ? T.common.fillRequired : undefined}
           />
         </Grid>
         <Grid size={12}>
@@ -367,7 +368,7 @@ export default function GeneralTab({
         </Grid>
         <Grid size={12}>
           <TextField
-            label="Стан"
+            label={T.ticket.general.deviceState}
             value={deviceState}
             onChange={(e) => setDeviceState(e.target.value)}
             disabled={locked}
@@ -378,7 +379,7 @@ export default function GeneralTab({
         </Grid>
         <Grid size={12}>
           <DirectoryMultiSelect
-            label="Несправність"
+            label={T.ticket.general.malfunction}
             table="malfunctions"
             options={malfunctionOpts}
             value={malfunction}
@@ -391,14 +392,14 @@ export default function GeneralTab({
             error={attempted && mergePending(malfunction, malfunctionInput).length === 0}
             helperText={
               attempted && mergePending(malfunction, malfunctionInput).length === 0
-                ? FILL
+                ? T.common.fillRequired
                 : undefined
             }
           />
         </Grid>
         <Grid size={12}>
           <DirectoryMultiSelect
-            label="Комплектація"
+            label={T.ticket.general.complectation}
             table="equipment_items"
             options={equipmentOpts}
             value={complectation}
@@ -411,7 +412,7 @@ export default function GeneralTab({
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <NumberField
-            label="Орієнтовна ціна"
+            label={T.ticket.general.estPrice}
             value={estPrice}
             onValueChange={(v) => setEstPrice(v)}
             disabled={locked}
@@ -420,7 +421,7 @@ export default function GeneralTab({
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <DateTimePicker
-            label="Термін"
+            label={T.ticket.general.due}
             value={dueDate}
             onChange={(v) => setDueDate(v)}
             disabled={locked}
@@ -437,12 +438,12 @@ export default function GeneralTab({
                 onChange={(e) => setUrgent(e.target.checked)}
               />
             }
-            label="Терміново"
+            label={T.ticket.general.urgent}
           />
         </Grid>
         <Grid size={12}>
           <TextField
-            label="Нотатки менеджера"
+            label={T.ticket.general.managerNotes}
             value={managerNotes}
             onChange={(e) => setManagerNotes(e.target.value)}
             disabled={locked}

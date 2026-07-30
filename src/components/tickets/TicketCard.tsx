@@ -21,9 +21,10 @@ import GeneralTab from "@/components/tickets/tabs/GeneralTab";
 import ItemsTab from "@/components/tickets/tabs/ItemsTab";
 import InvoicesTab from "@/components/tickets/tabs/InvoicesTab";
 import TicketTimeline from "@/components/tickets/TicketTimeline";
-import { T, isTerminalGroup } from "@/lib/constants";
+import { isTerminalGroup } from "@/lib/constants";
 import { useStatuses } from "@/lib/status-context";
-import { formatUAH } from "@/lib/money";
+import { useT, useMoney, useLocale, useCurrency } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n";
 import { renderTemplate, type TemplateContext } from "@/lib/document-variables";
 import { printHtml } from "@/lib/print";
 import type {
@@ -67,6 +68,9 @@ function PrintMenu({
   paid: number;
   company: TemplateContext["company"];
 }) {
+  const T = useT();
+  const locale = useLocale();
+  const currency = useCurrency();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
 
   const printable = templates.filter((t) =>
@@ -75,7 +79,14 @@ function PrintMenu({
 
   function handlePrint(template: DocumentTemplate) {
     setAnchor(null);
-    const html = renderTemplate(template.content, { ticket, items, paid, company });
+    const html = renderTemplate(template.content, {
+      ticket,
+      items,
+      paid,
+      company,
+      locale,
+      currency,
+    });
     printHtml(`${T.documents.kinds[template.kind]} — №${ticket.number}`, html);
   }
 
@@ -136,6 +147,8 @@ export default function TicketCard({
   company?: TemplateContext["company"] | null;
   embedded?: boolean;
 }) {
+  const T = useT();
+  const money = useMoney();
   const [tab, setTab] = useState(0);
 
   // A closed ticket (terminal status group) is frozen: every parameter, line
@@ -185,13 +198,13 @@ export default function TicketCard({
         <Typography variant="h5" sx={{
           fontWeight: 700
         }}>
-          Заявка №{ticket.number}
+          {fmt(T.ticket.card.ticketNumber, { number: ticket.number })}
         </Typography>
         <StatusBadge ticketId={ticket.id} status={ticket.status} />
         <Box sx={{ flexGrow: 1 }} />
         {!embedded && (
           <Link href="/workflows" style={{ color: "#1976d2", textDecoration: "none" }}>
-            ← До списку
+            {T.ticket.card.backToList}
           </Link>
         )}
       </Stack>
@@ -270,10 +283,10 @@ export default function TicketCard({
           >
             <Stack direction="row" sx={{ alignItems: "baseline" }}>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Оплачено:&nbsp;
+                {T.ticket.card.paidLabel}&nbsp;
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                {formatUAH(paid)}
+                {money(paid)}
               </Typography>
             </Stack>
             <Box sx={{ flexGrow: 1 }} />

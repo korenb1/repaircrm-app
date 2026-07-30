@@ -29,10 +29,8 @@ import PhoneListEditor, {
   isPhoneDraftValid,
 } from "@/components/contacts/PhoneListEditor";
 import { splitStored, toE164, validatePhone } from "@/lib/phone";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { Contact } from "@/lib/types";
-
-const FILL = "Заповніть це поле";
 
 // Build the initial phone list, optionally prefilled with a number passed in
 // from another flow (e.g. the ticket dialog's "+ КОНТАКТ"). The number is split
@@ -63,6 +61,7 @@ export default function CreateContactDialog({
   onCreated?: (contact: Contact) => void;
   tagOptions?: string[];
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const theme = useTheme();
@@ -171,7 +170,7 @@ export default function CreateContactDialog({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-        Новий контакт
+        {T.contacts.create.newContact}
         <Box sx={{ flexGrow: 1 }} />
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
@@ -184,61 +183,61 @@ export default function CreateContactDialog({
             value={type}
             onChange={(_, v) => setType(v as "person" | "organization")}
           >
-            <FormControlLabel value="person" control={<Radio />} label="Людина" />
+            <FormControlLabel value="person" control={<Radio />} label={T.contacts.create.person} />
             <FormControlLabel
               value="organization"
               control={<Radio />}
-              label="Організація"
+              label={T.contacts.create.organization}
             />
           </RadioGroup>
 
           <Divider textAlign="left">
-            <Typography variant="subtitle2">Контактні дані</Typography>
+            <Typography variant="subtitle2">{T.contacts.create.contactDetails}</Typography>
           </Divider>
 
           <TextField
-            label="Ім'я"
+            label={T.contacts.fields.firstName}
             required
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             fullWidth
             error={attempted && !firstName.trim()}
-            helperText={attempted && !firstName.trim() ? FILL : undefined}
+            helperText={attempted && !firstName.trim() ? T.common.fillRequired : undefined}
           />
           <TextField
-            label="Прізвище"
+            label={T.contacts.fields.lastName}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             fullWidth
           />
           <PhoneListEditor value={phoneList} onChange={setPhoneList} showRequired={attempted} />
           <TextField
-            label="Email"
+            label={T.contacts.fields.email}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
           />
           <TextField
-            label="Адреса"
+            label={T.contacts.fields.address}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             fullWidth
           />
 
           <Divider textAlign="left">
-            <Typography variant="subtitle2">Знижки</Typography>
+            <Typography variant="subtitle2">{T.contacts.create.discounts}</Typography>
           </Divider>
 
           <TextField
-            label="Дисконтна картка"
+            label={T.contacts.fields.discountCard}
             value={discountCard}
             onChange={(e) => setDiscountCard(e.target.value)}
             fullWidth
           />
           <Stack direction="row" spacing={2}>
             <NumberField
-              label="Знижка на послуги, %"
+              label={T.contacts.fields.serviceDiscount}
               value={discountService}
               onValueChange={(v) => setDiscountService(v)}
               min={0}
@@ -246,7 +245,7 @@ export default function CreateContactDialog({
               fullWidth
             />
             <NumberField
-              label="Знижка на товари, %"
+              label={T.contacts.fields.productDiscount}
               value={discountGoods}
               onValueChange={(v) => setDiscountGoods(v)}
               min={0}
@@ -256,11 +255,11 @@ export default function CreateContactDialog({
           </Stack>
 
           <Divider textAlign="left">
-            <Typography variant="subtitle2">Інше</Typography>
+            <Typography variant="subtitle2">{T.contacts.create.other}</Typography>
           </Divider>
 
           <TextField
-            label="Нотатка"
+            label={T.contacts.fields.note}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             fullWidth

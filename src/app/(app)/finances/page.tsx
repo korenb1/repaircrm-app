@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth-server";
 import FinancesView from "@/components/finances/FinancesView";
 import type {
   Contact,
@@ -12,9 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function FinancesPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const [
     { data: accounts },

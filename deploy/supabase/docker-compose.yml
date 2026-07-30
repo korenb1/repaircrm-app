@@ -1,0 +1,106 @@
+# Minimal self-hosted Supabase for this app.
+#
+# Only the pieces the app actually uses:
+#   db       - Postgres (Better Auth tables + app schema + storage schema)
+#   rest     - PostgREST (the Data API)
+#   storage  - storage-api (avatars / ticket-files / contact-files / company-files)
+#   imgproxy - image transformations for storage
+#
+# Deliberately NOT included:
+#   auth (GoTrue)  - identity is Better Auth, JWTs are minted in src/lib/supabase/jwt.ts
+#   realtime       - no subscriptions in the codebase
+#   kong           - host Caddy routes /rest/v1/* and /storage/v1/* instead
+#   studio         - reach the DB over an SSH tunnel instead (see README)
+#
+# One copy of this file serves both environments; everything varies through .env.
+name: ${STACK_NAME}
+
+services:
+  db:
+    image: supabase/postgres:17.4.1.075
+    restart: unless-stopped
+    ports:
+      # Bound to loopback only. Never expose 5432/5433 to the internet.
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Runs once, on first boot of an empty volume. The supabase/postgres image
+      # already creates the anon / authenticated / service_role / authenticator /
+      # supabase_storage_admin roles; this only sets their passwords.
+      - ./init/00-passwords.sql:/docker-entrypoint-initdb.d/init-scripts/00-passwords.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rest:
+    image: postgrest/postgrest:v13.0.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${REST_PORT}:3000"
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      # Mirrors supabase/config.toml [api].schemas + extra_search_path.
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+    command: postgrest
+
+  storage:
+    image: supabase/storage-api:v1.28.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${STORAGE_PORT}:5000"
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      POSTGREST_URL: http://rest:3000
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      # 50MiB, matches supabase/config.toml [storage].file_size_limit
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:5001
+    volumes:
+      - storage-data:/var/lib/storage
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.8.0
+    restart: unless-stopped
+    environment:
+      IMGPROXY_BIND: ":5001"
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+    volumes:
+      - storage-data:/var/lib/storage
+
+volumes:
+  db-data:
+  storage-data:

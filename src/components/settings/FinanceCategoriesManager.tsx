@@ -24,7 +24,7 @@ import StarIcon from "@mui/icons-material/Star";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { FinanceCategory, FinanceKind } from "@/lib/types";
 
 function CategoryDialog({
@@ -38,6 +38,7 @@ function CategoryDialog({
   count: number;
   onClose: () => void;
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const isEdit = Boolean(initial);
@@ -137,6 +138,7 @@ function CategorySection({
   title: string;
   categories: FinanceCategory[];
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const [editing, setEditing] = useState<FinanceCategory | null>(null);
@@ -190,7 +192,7 @@ function CategorySection({
         ),
       },
     ],
-    [],
+    [T],
   );
 
   return (
@@ -237,6 +239,7 @@ export default function FinanceCategoriesManager({
 }: {
   categories: FinanceCategory[];
 }) {
+  const T = useT();
   const revenue = categories.filter((c) => c.kind === "revenue");
   const expense = categories.filter((c) => c.kind === "expense");
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Box } from "@mui/material";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
+import { useT } from "@/lib/i18n/context";
 import type { TicketRow } from "@/lib/types";
 
 // A device the client owns, derived from one of their tickets.
@@ -22,6 +23,7 @@ function deviceName(t: TicketRow) {
 // Devices are not stored per-contact; they live on the client's tickets.
 // This tab lists the device of each ticket that has one, linking back to it.
 export default function DevicesTab({ tickets }: { tickets: TicketRow[] }) {
+  const T = useT();
   const rows = useMemo<DeviceRow[]>(
     () =>
       tickets
@@ -38,12 +40,12 @@ export default function DevicesTab({ tickets }: { tickets: TicketRow[] }) {
 
   const cols = useMemo<ColumnDef<DeviceRow, any>[]>(
     () => [
-      { accessorKey: "group", header: "Група" },
-      { accessorKey: "device", header: "Пристрій" },
-      { accessorKey: "snImei", header: "SN / IMEI" },
+      { accessorKey: "group", header: T.contactCard.devices.group },
+      { accessorKey: "device", header: T.contactCard.devices.device },
+      { accessorKey: "snImei", header: T.contactCard.devices.snImei },
       {
         accessorKey: "ticketNumber",
-        header: "Заявка",
+        header: T.contactCard.devices.ticket,
         cell: (c) => (
           <Link
             href={`/workflows/${c.row.original.ticketId}`}
@@ -54,12 +56,12 @@ export default function DevicesTab({ tickets }: { tickets: TicketRow[] }) {
         ),
       },
     ],
-    [],
+    [T],
   );
 
   return (
     <Box>
-      <DataTable data={rows} columns={cols} dense emptyText="Немає пристроїв" storageKey="contact-devices" />
+      <DataTable data={rows} columns={cols} dense emptyText={T.contactCard.devices.noDevices} storageKey="contact-devices" />
     </Box>
   );
 }

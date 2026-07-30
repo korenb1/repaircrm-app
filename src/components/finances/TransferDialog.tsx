@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import NumberField from "@/components/NumberField";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { FinancialAccount } from "@/lib/types";
 
 export interface TransferInitial {
@@ -39,6 +39,7 @@ export default function TransferDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
   const isEdit = Boolean(initial);
 
   const [fromId, setFromId] = useState<number | null>(

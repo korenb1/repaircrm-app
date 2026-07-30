@@ -20,8 +20,9 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import StarIcon from "@mui/icons-material/Star";
 import type { CountryCode } from "libphonenumber-js";
 import { COUNTRIES, DEFAULT_COUNTRY, countryByIso, validatePhone } from "@/lib/phone";
+import { useT } from "@/lib/i18n/context";
 
-const FILL = "Заповніть це поле";
+
 
 // A draft phone row used by the create dialog and the general tab. The number
 // is held as the national (local) part; `country` selects the calling code.
@@ -54,6 +55,7 @@ function CountrySelect({
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
+  const T = useT();
   const current = countryByIso(iso) ?? COUNTRIES[0];
 
   const filtered = useMemo(() => {
@@ -93,7 +95,7 @@ function CountrySelect({
             autoFocus
             fullWidth
             size="small"
-            placeholder="Пошук країни…"
+            placeholder={T.contacts.fields.searchCountry}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
@@ -133,6 +135,7 @@ export default function PhoneListEditor({
   onChange: (next: PhoneDraft[]) => void;
   showRequired?: boolean;
 }) {
+  const T = useT();
   function update(i: number, patch: Partial<PhoneDraft>) {
     onChange(value.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   }
@@ -158,17 +161,17 @@ export default function PhoneListEditor({
     <Stack spacing={1.5}>
       {value.length === 0 && (
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Немає телефонів.
+          {T.contacts.fields.noPhones}
         </Typography>
       )}
       {value.map((p, i) => {
         const badFormat = !!p.phone.trim() && !validatePhone(p.phone, p.country);
         const emptyRequired = !!showRequired && p.is_primary && !p.phone.trim();
         const error = badFormat || emptyRequired;
-        const helper = badFormat ? "Невірний номер" : emptyRequired ? FILL : undefined;
+        const helper = badFormat ? T.contacts.fields.invalidPhone : emptyRequired ? T.common.fillRequired : undefined;
         return (
           <Stack key={i} direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
-            <Tooltip title="Основний номер">
+            <Tooltip title={T.contacts.fields.primaryPhone}>
               <Radio
                 size="small"
                 checked={p.is_primary}
@@ -179,7 +182,7 @@ export default function PhoneListEditor({
               />
             </Tooltip>
             <TextField
-              label="Телефон"
+              label={T.contacts.cols.phone}
               value={p.phone}
               onChange={(e) => update(i, { phone: e.target.value })}
               placeholder="50 123 45 67"
@@ -202,10 +205,10 @@ export default function PhoneListEditor({
               }}
             />
             <TextField
-              label="Підпис"
+              label={T.contacts.fields.phoneLabel}
               value={p.label}
               onChange={(e) => update(i, { label: e.target.value })}
-              placeholder="робочий, дім…"
+              placeholder={T.contacts.fields.phoneLabelPlaceholder}
               size="small"
               sx={{ flex: 1 }}
             />
@@ -217,7 +220,7 @@ export default function PhoneListEditor({
       })}
       <Box>
         <Button startIcon={<AddIcon />} size="small" onClick={add}>
-          Додати телефон
+          {T.contacts.fields.addPhone}
         </Button>
       </Box>
     </Stack>

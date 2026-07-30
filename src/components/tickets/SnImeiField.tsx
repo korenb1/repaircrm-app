@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n/context";
 import type { DeviceRow } from "@/lib/types";
 
 const DEVICE_SELECT =
@@ -44,6 +45,7 @@ export default function SnImeiField({
   helperText?: string;
   disabled?: boolean;
 }) {
+  const T = useT();
   const supabase = createClient();
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -54,7 +56,7 @@ export default function SnImeiField({
       .select(DEVICE_SELECT)
       .order("created_at", { ascending: false })
       .then(({ data }) => setDevices((data as DeviceRow[] | null) ?? []));
-  }, [supabase]);
+  }, []);
 
   async function generate() {
     setGenerating(true);
@@ -102,14 +104,14 @@ export default function SnImeiField({
         renderInput={(p) => (
           <TextField
             {...p}
-            label="Серійний номер / IMEI"
+            label={T.ticket.general.snImei}
             required={required}
             error={error}
             helperText={helperText}
           />
         )}
       />
-      <Tooltip title="Згенерувати номер">
+      <Tooltip title={T.ticket.general.generateSn}>
         <span>
           <IconButton onClick={generate} disabled={generating || disabled} sx={{ mt: 1 }}>
             <AutorenewIcon />

@@ -21,7 +21,7 @@ import TransactionsTable, {
 } from "@/components/finances/TransactionsTable";
 import { createClient } from "@/lib/supabase/client";
 import { inPreset } from "@/lib/datePresets";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type {
   Contact,
   FinanceCategory,
@@ -48,6 +48,7 @@ export default function FinancesView({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
 
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [selectedId, setSelectedId] = useState<number | null>(
@@ -163,7 +164,7 @@ export default function FinancesView({
 
     return { ledger, revenueTotal: rev, expenseTotal: exp };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, selectedId, filter, now, transferLegs, accountName]);
+  }, [transactions, selectedId, filter, now, transferLegs, accountName, T]);
 
   function onContactCreated(c: Contact) {
     setContacts((prev) => (prev.some((p) => p.id === c.id) ? prev : [...prev, c]));

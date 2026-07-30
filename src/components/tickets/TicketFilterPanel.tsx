@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { useStatuses } from "@/lib/status-context";
 import { DATE_PRESETS } from "@/lib/datePresets";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { FilterCriteria } from "@/lib/types";
 
 export interface EntityOption {
@@ -85,6 +85,7 @@ export default function TicketFilterPanel({
   onChange: (next: FilterCriteria) => void;
 }) {
   const { statuses } = useStatuses();
+  const T = useT();
   const F = T.workflows.filters;
 
   const set = <K extends keyof FilterCriteria>(key: K, val: FilterCriteria[K]) =>
@@ -162,8 +163,8 @@ export default function TicketFilterPanel({
             onChange={(e) => set("created", e.target.value)}
           >
             {DATE_PRESETS.map((p) => (
-              <MenuItem key={p.key} value={p.key}>
-                {p.label}
+              <MenuItem key={p} value={p}>
+                {T.datePresets[p]}
               </MenuItem>
             ))}
           </Select>

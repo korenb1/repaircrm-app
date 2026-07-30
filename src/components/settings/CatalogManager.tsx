@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -25,8 +26,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import NumberField from "@/components/NumberField";
 import DataTable from "@/components/ui/DataTable";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
-import { formatUAH } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
 import type { ServiceCatalogItem, ServiceCategory } from "@/lib/types";
 
 type CatalogKind = "service" | "product";
@@ -144,6 +144,7 @@ function CategoryDialog({
   count: number;
   onClose: () => void;
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const L = kind === "product" ? T.settings.products : T.settings.services;
@@ -252,21 +253,37 @@ function CategoryDialog({
 function ItemDialog({
   kind,
   categories,
+  items,
   initial,
   presetCategory,
   onClose,
 }: {
   kind: CatalogKind;
   categories: ServiceCategory[];
+  items: ServiceCatalogItem[];
   initial: ServiceCatalogItem | null;
   presetCategory: number | null;
   onClose: () => void;
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const isProduct = kind === "product";
   const L = isProduct ? T.settings.products : T.settings.services;
   const isEdit = Boolean(initial);
+
+  // Existing names within this kind (excluding the row being edited), for the
+  // duplicate check. Case-insensitive.
+  const takenNames = useMemo(() => {
+    const kindItems = items.filter((i) =>
+      isProduct ? i.kind === "product" : i.kind !== "product",
+    );
+    return new Set(
+      kindItems
+        .filter((i) => i.id !== initial?.id)
+        .map((i) => i.name.trim().toLowerCase()),
+    );
+  }, [items, isProduct, initial]);
 
   const options = useMemo(() => flattenCategories(kind, categories), [kind, categories]);
   const defaultRoot = categories.find(
@@ -282,10 +299,14 @@ function ItemDialog({
   const [sku, setSku] = useState(initial?.sku ?? "");
   const [barcode, setBarcode] = useState(initial?.barcode ?? "");
   const [saving, setSaving] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  const isDuplicate = takenNames.has(name.trim().toLowerCase());
 
   // Products require an explicit category; services fall back to the default root.
-  // Price is mandatory for both.
-  const valid = name.trim() && price != null && (!isProduct || categoryId != null);
+  // Price is mandatory for both. Name must be unique within the kind.
+  const valid =
+    name.trim() && price != null && (!isProduct || categoryId != null) && !isDuplicate;
 
   async function submit() {
     if (!valid) return;
@@ -317,12 +338,15 @@ function ItemDialog({
           sku: null,
           barcode: null,
         };
-    if (isEdit) {
-      await supabase.from("service_catalog").update(payload).eq("id", initial!.id);
-    } else {
-      await supabase.from("service_catalog").insert(payload);
-    }
+    const { error } = isEdit
+      ? await supabase.from("service_catalog").update(payload).eq("id", initial!.id)
+      : await supabase.from("service_catalog").insert(payload);
     setSaving(false);
+    if (error) {
+      // 23505 = unique_violation (lost the race against a concurrent insert).
+      setDbError(error.code === "23505" ? L.duplicateName : L.saveError);
+      return;
+    }
     onClose();
     router.refresh();
   }
@@ -340,6 +364,7 @@ function ItemDialog({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2} sx={{ pt: 1 }}>
+          {dbError && <Alert severity="error">{dbError}</Alert>}
           <TextField
             select
             label={L.category}
@@ -362,7 +387,12 @@ function ItemDialog({
             label={L.name}
             required
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setDbError(null);
+            }}
+            error={isDuplicate}
+            helperText={isDuplicate ? L.duplicateName : undefined}
             fullWidth
           />
           {isProduct ? (
@@ -416,6 +446,8 @@ export default function CatalogManager({
   items: ServiceCatalogItem[];
   categories: ServiceCategory[];
 }) {
+  const T = useT();
+  const money = useMoney();
   const router = useRouter();
   const supabase = createClient();
   const isProduct = kind === "product";
@@ -518,7 +550,7 @@ export default function CatalogManager({
       enableSorting: false,
       cell: (c) =>
         c.row.original.rowType === "item"
-          ? formatUAH(c.row.original.item.price)
+          ? money(c.row.original.item.price)
           : "",
     };
 
@@ -606,14 +638,14 @@ export default function CatalogManager({
         enableSorting: false,
         cell: (c) =>
           c.row.original.rowType === "item"
-            ? formatUAH(c.row.original.item.cost_price)
+            ? money(c.row.original.item.cost_price)
             : "",
       },
       priceCol,
       actionsCol,
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isProduct, L]);
+  }, [isProduct, L, T, money]);
 
   return (
     <Box>
@@ -660,6 +692,7 @@ export default function CatalogManager({
           key={itemDialog.initial?.id ?? "new"}
           kind={kind}
           categories={categories}
+          items={items}
           initial={itemDialog.initial}
           presetCategory={itemDialog.presetCategory}
           onClose={() => setItemDialog(null)}

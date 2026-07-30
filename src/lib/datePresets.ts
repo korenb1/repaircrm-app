@@ -1,16 +1,27 @@
 // Date-range presets for the tickets "created" filter. Keys are stored in
 // FilterCriteria.created; `inPreset` decides whether a given ISO date falls in
 // the preset relative to `now` (captured once at mount for render purity).
+// Labels live in the i18n dictionaries (dict.datePresets[key]).
 
-export const DATE_PRESETS: { key: string; label: string }[] = [
-  { key: "all", label: "Весь час" },
-  { key: "today", label: "Сьогодні" },
-  { key: "yesterday", label: "Вчора" },
-  { key: "last7", label: "Останні 7 днів" },
-  { key: "week", label: "Цей тиждень" },
-  { key: "last30", label: "Останні 30 днів" },
-  { key: "month", label: "Цей місяць" },
-  { key: "year", label: "Цей рік" },
+export type DatePresetKey =
+  | "all"
+  | "today"
+  | "yesterday"
+  | "last7"
+  | "week"
+  | "last30"
+  | "month"
+  | "year";
+
+export const DATE_PRESETS: DatePresetKey[] = [
+  "all",
+  "today",
+  "yesterday",
+  "last7",
+  "week",
+  "last30",
+  "month",
+  "year",
 ];
 
 const DAY = 86_400_000;

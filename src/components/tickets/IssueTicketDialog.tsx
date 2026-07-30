@@ -14,7 +14,8 @@ import {
 } from "@mui/material";
 import NumberField from "@/components/NumberField";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/context";
 import type { FinancialAccount } from "@/lib/types";
 
 // Shown before a ticket moves into a terminal (closed) status.
@@ -39,6 +40,7 @@ export default function IssueTicketDialog({
   onIssued: () => void;
 }) {
   const isRefund = mode === "refund";
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
 
@@ -86,7 +88,7 @@ export default function IssueTicketDialog({
           .eq("kind", "revenue")
           .eq("is_default_closed", true)
           .maybeSingle(),
-        supabase.auth.getUser(),
+        authClient.getSession(),
       ]);
       if (!active) return;
 
@@ -111,13 +113,13 @@ export default function IssueTicketDialog({
       setAccounts(list);
       setAccountId(list[0]?.id ?? null);
       setDefaultCategoryId(defCat?.id ?? null);
-      setUserId(auth?.user?.id ?? null);
+      setUserId(auth?.user.id ?? null);
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [supabase, ticketId, isRefund]);
+  }, [ticketId, isRefund]);
 
   const noAccounts = !loading && accounts.length === 0;
   const canConfirm = !busy && !loading && accountId != null;

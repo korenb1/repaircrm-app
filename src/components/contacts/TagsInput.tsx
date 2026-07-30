@@ -1,6 +1,7 @@
 "use client";
 import { Autocomplete, Chip, TextField, createFilterOptions } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { useT } from "@/lib/i18n/context";
 
 const filter = createFilterOptions<string>();
 
@@ -10,13 +11,14 @@ export default function TagsInput({
   value,
   onChange,
   options,
-  label = "Теги",
+  label,
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   options: string[];
   label?: string;
 }) {
+  const T = useT();
   return (
     <Autocomplete
       multiple
@@ -67,7 +69,7 @@ export default function TagsInput({
         );
       }}
       renderInput={(params) => (
-        <TextField {...params} label={label} placeholder="Додати тег…" fullWidth />
+        <TextField {...params} label={label ?? T.contacts.fields.tags} placeholder={T.contacts.fields.addTag} fullWidth />
       )}
     />
   );

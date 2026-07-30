@@ -10,6 +10,7 @@ import {
   Divider,
   IconButton,
   InputAdornment,
+  MenuItem,
   Snackbar,
   Stack,
   TextField,
@@ -20,7 +21,11 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { authClient } from "@/lib/auth-client";
+import PasskeyManager from "@/components/profile/PasskeyManager";
+import { useT } from "@/lib/i18n/context";
+import { LOCALES } from "@/lib/i18n";
+import { CURRENCIES } from "@/lib/i18n/currencies";
 import type { Profile } from "@/lib/types";
 
 const BUCKET = "avatars";
@@ -34,11 +39,14 @@ export default function ProfileManager({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [fullName, setFullName] = useState(profile.full_name);
   const [phone, setPhone] = useState(profile.phone);
   const [telegram, setTelegram] = useState(profile.telegram_username);
+  const [language, setLanguage] = useState(profile.language || "en");
+  const [currency, setCurrency] = useState(profile.currency || "USD");
   const [avatarPath, setAvatarPath] = useState<string | null>(
     profile.avatar_path,
   );
@@ -76,7 +84,7 @@ export default function ProfileManager({
       if (avatarPath) await supabase.storage.from(BUCKET).remove([avatarPath]);
       setAvatarPath(path);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Помилка завантаження");
+      setError(e instanceof Error ? e.message : T.common.uploadError);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -91,7 +99,7 @@ export default function ProfileManager({
       await supabase.storage.from(BUCKET).remove([avatarPath]);
       setAvatarPath(null);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Помилка видалення");
+      setError(e instanceof Error ? e.message : T.common.deleteError);
     } finally {
       setBusy(false);
     }
@@ -107,14 +115,18 @@ export default function ProfileManager({
           full_name: fullName.trim(),
           phone: phone.trim(),
           telegram_username: telegram.trim().replace(/^@+/, ""),
+          language,
+          currency,
           avatar_path: avatarPath,
         })
         .eq("id", profile.id);
       if (err) throw err;
       setSaved(true);
+      // Refresh so the app layout re-seeds I18nProvider with the new
+      // language/currency and the whole UI updates.
       router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Помилка збереження");
+      setError(e instanceof Error ? e.message : T.common.saveError);
     } finally {
       setBusy(false);
     }
@@ -132,25 +144,26 @@ export default function ProfileManager({
     }
     setPwBusy(true);
     try {
-      // Verify current password by re-authenticating before changing it.
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email,
-        password: currentPw,
+      // Better Auth verifies the current password server-side.
+      const { error: pwErr } = await authClient.changePassword({
+        currentPassword: currentPw,
+        newPassword: newPw,
+        revokeOtherSessions: true,
       });
-      if (signInErr) {
-        setPwError(T.profile.password.wrong);
+      if (pwErr) {
+        setPwError(
+          pwErr.status === 400 || pwErr.status === 401
+            ? T.profile.password.wrong
+            : (pwErr.message ?? T.profile.password.error),
+        );
         return;
       }
-      const { error: updErr } = await supabase.auth.updateUser({
-        password: newPw,
-      });
-      if (updErr) throw updErr;
       setCurrentPw("");
       setNewPw("");
       setConfirmPw("");
       setPwChanged(true);
     } catch (e: unknown) {
-      setPwError(e instanceof Error ? e.message : "Помилка зміни пароля");
+      setPwError(e instanceof Error ? e.message : T.profile.password.error);
     } finally {
       setPwBusy(false);
     }
@@ -238,6 +251,38 @@ export default function ProfileManager({
           />
         </Stack>
 
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 1 }}>
+          {T.profile.preferences}
+        </Typography>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            select
+            label={T.profile.language}
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            fullWidth
+          >
+            {LOCALES.map((l) => (
+              <MenuItem key={l.code} value={l.code}>
+                {l.label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label={T.profile.currency}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            fullWidth
+          >
+            {CURRENCIES.map((c) => (
+              <MenuItem key={c.code} value={c.code}>
+                {c.code} — {c.label} ({c.symbol})
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+
         <Box>
           <Button
             variant="contained"
@@ -249,6 +294,10 @@ export default function ProfileManager({
           </Button>
         </Box>
       </Stack>
+
+      <Divider sx={{ my: 3 }} />
+
+      <PasskeyManager />
 
       <Divider sx={{ my: 3 }} />
 

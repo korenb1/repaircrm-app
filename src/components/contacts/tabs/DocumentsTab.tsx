@@ -14,6 +14,8 @@ import {
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/context";
 import ImageLightbox, { type LightboxImage } from "@/components/ui/ImageLightbox";
 import type { ContactDocument } from "@/lib/types";
 
@@ -31,17 +33,6 @@ function fmtDate(iso: string) {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function formatSize(bytes: number | null) {
-  if (!bytes) return "";
-  const units = ["Б", "КБ", "МБ", "ГБ"];
-  let n = bytes;
-  let i = 0;
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i++;
-  }
-  return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
 
 export default function DocumentsTab({
   contactId,
@@ -51,7 +42,17 @@ export default function DocumentsTab({
   documents: ContactDocument[];
 }) {
   const router = useRouter();
+  const T = useT();
   const supabase = createClient();
+
+  function formatSize(bytes: number | null) {
+    if (!bytes) return "";
+    const units = [T.common.unitB, T.common.unitKB, T.common.unitMB, T.common.unitGB];
+    let n = bytes;
+    let i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  }
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +77,8 @@ export default function DocumentsTab({
     if (!files || files.length === 0 || busy) return;
     setBusy(true);
     setError(null);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id ?? null;
+    const { data: session } = await authClient.getSession();
+    const uid = session?.user.id ?? null;
     try {
       for (const file of Array.from(files)) {
         const safe = file.name.replace(/[^\w.\-]+/g, "_");
@@ -98,7 +99,7 @@ export default function DocumentsTab({
       }
       router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Помилка завантаження");
+      setError(e instanceof Error ? e.message : T.contactCard.documents.uploadError);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -114,7 +115,7 @@ export default function DocumentsTab({
       if (del.error) throw del.error;
       router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Помилка видалення");
+      setError(e instanceof Error ? e.message : T.contactCard.documents.deleteError);
     } finally {
       setBusy(false);
     }
@@ -129,7 +130,7 @@ export default function DocumentsTab({
           disabled={busy}
           onClick={() => fileRef.current?.click()}
         >
-          Завантажити
+          {T.contactCard.documents.upload}
         </Button>
         <input ref={fileRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
       </Stack>
@@ -142,7 +143,7 @@ export default function DocumentsTab({
 
       {documents.length === 0 ? (
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Немає документів.
+          {T.contactCard.documents.noDocuments}
         </Typography>
       ) : (
         <Stack spacing={1.5}>

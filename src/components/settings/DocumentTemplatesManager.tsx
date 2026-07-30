@@ -26,7 +26,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { Editor as TinyMCEEditor } from "tinymce";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import { VARIABLE_GROUPS } from "@/lib/document-variables";
 import type { DocumentTemplate, DocumentTemplateKind } from "@/lib/types";
 
@@ -63,6 +63,8 @@ function VariablesSidebar({
 }: {
   onInsert: (token: string) => void;
 }) {
+  const T = useT();
+  const V = T.variableGroups;
   return (
     <Box sx={{ width: 280, flexShrink: 0, borderLeft: "1px solid #e0e0e0" }}>
       <Box sx={{ p: 1.5, borderBottom: "1px solid #e0e0e0" }}>
@@ -84,15 +86,15 @@ function VariablesSidebar({
           >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {group.label}
+                {V[group.key]}
               </Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ pt: 0 }}>
               <Stack spacing={0.5}>
-                {group.variables.map((v) => (
+                {group.tokens.map((token) => (
                   <Box
-                    key={v.token}
-                    onClick={() => onInsert(v.token)}
+                    key={token}
+                    onClick={() => onInsert(token)}
                     sx={{
                       cursor: "pointer",
                       px: 1,
@@ -105,10 +107,10 @@ function VariablesSidebar({
                       variant="body2"
                       sx={{ color: "primary.main", fontFamily: "monospace" }}
                     >
-                      {`{{${v.token}}}`}
+                      {`{{${token}}}`}
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      {v.label}
+                      {V.vars[token as keyof typeof V.vars]}
                     </Typography>
                   </Box>
                 ))}
@@ -128,6 +130,7 @@ export default function DocumentTemplatesManager({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
   const editorRef = useRef<TinyMCEEditor | null>(null);
 
   const [selectedId, setSelectedId] = useState<number | null>(

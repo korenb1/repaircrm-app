@@ -1,0 +1,58 @@
+# /etc/caddy/Caddyfile
+# Replace domain.com with the real domain, then: sudo systemctl reload caddy
+# TLS certs are obtained and renewed automatically.
+
+{
+	email admin@domain.com
+}
+
+# ---------------------------------------------------------------- landing ---
+domain.com, www.domain.com {
+	root * /srv/repaircrm/landing
+	file_server
+	encode gzip
+}
+
+# ------------------------------------------------------------------- prod ---
+app.domain.com {
+	header X-Robots-Tag "noindex, nofollow"
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+}
+
+# Prod Supabase gateway. supabase-js calls ${NEXT_PUBLIC_SUPABASE_URL}/rest/v1/*
+# and /storage/v1/*, so this replaces Kong. handle_path strips the prefix before
+# proxying, which is what PostgREST and storage-api expect.
+db.domain.com {
+	header X-Robots-Tag "noindex, nofollow"
+	handle_path /rest/v1/* {
+		reverse_proxy 127.0.0.1:5401
+	}
+	handle_path /storage/v1/* {
+		reverse_proxy 127.0.0.1:5402
+	}
+	respond 404
+}
+
+# ---------------------------------------------------------------- staging ---
+testapp.domain.com {
+	header X-Robots-Tag "noindex, nofollow"
+	encode gzip
+	# Optional extra gate in front of the app login. Generate the hash with:
+	#   caddy hash-password
+	# basic_auth {
+	# 	staging $2a$14$replace_with_hash
+	# }
+	reverse_proxy 127.0.0.1:3001
+}
+
+db-staging.domain.com {
+	header X-Robots-Tag "noindex, nofollow"
+	handle_path /rest/v1/* {
+		reverse_proxy 127.0.0.1:5411
+	}
+	handle_path /storage/v1/* {
+		reverse_proxy 127.0.0.1:5412
+	}
+	respond 404
+}

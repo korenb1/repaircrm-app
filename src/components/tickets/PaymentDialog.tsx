@@ -14,17 +14,9 @@ import {
 } from "@mui/material";
 import NumberField from "@/components/NumberField";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/context";
 import type { FinancialAccount, PaymentKind } from "@/lib/types";
-
-const TITLE: Record<PaymentKind, string> = {
-  payment: "Оплата",
-  prepayment: "Передоплата",
-  advance: "Аванс",
-  payout: "Виплата",
-  correction: "Коригування",
-  refund: "Повернення",
-};
 
 // kinds that decrease the balance (stored as negative)
 const NEGATIVE: PaymentKind[] = ["payout"];
@@ -56,6 +48,7 @@ export default function PaymentDialog({
   kind: PaymentKind;
   defaultAmount?: number | null;
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const [amount, setAmount] = useState<number | null>(defaultAmount);
@@ -66,29 +59,39 @@ export default function PaymentDialog({
   const needsAccount = financeKind != null;
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [accountId, setAccountId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(needsAccount);
 
-  // Load financial accounts + current user only for cash-moving kinds.
+  // Load financial accounts, the default category and current user only for
+  // cash-moving kinds. The default category ("Repair") is the one flagged
+  // is_default_closed for the finance kind — same as the issue-ticket flow.
   useEffect(() => {
     if (!open || !needsAccount) return;
     let active = true;
     (async () => {
-      const [{ data: accs }, { data: auth }] = await Promise.all([
+      const [{ data: accs }, { data: defCat }, { data: auth }] = await Promise.all([
         supabase.from("financial_accounts").select("*").order("sort_order"),
-        supabase.auth.getUser(),
+        supabase
+          .from("finance_categories")
+          .select("id")
+          .eq("kind", financeKind)
+          .eq("is_default_closed", true)
+          .maybeSingle(),
+        authClient.getSession(),
       ]);
       if (!active) return;
       const list = (accs ?? []) as FinancialAccount[];
       setAccounts(list);
       setAccountId(list[0]?.id ?? null);
-      setUserId(auth?.user?.id ?? null);
+      setCategoryId(defCat?.id ?? null);
+      setUserId(auth?.user.id ?? null);
       setLoading(false);
     })();
     return () => {
       active = false;
     };
-  }, [open, needsAccount, supabase]);
+  }, [open, needsAccount, financeKind]);
 
   const noAccounts = needsAccount && !loading && accounts.length === 0;
   const canSave =
@@ -120,6 +123,7 @@ export default function PaymentDialog({
         account_id: accountId,
         kind: financeKind,
         amount: Math.abs(raw),
+        category_id: categoryId,
         contact_id: contactId,
         ticket_id: ticketId ?? null,
         source_kind: kind,
@@ -138,7 +142,7 @@ export default function PaymentDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{TITLE[kind]}</DialogTitle>
+      <DialogTitle>{T.finances.txKinds[kind as keyof typeof T.finances.txKinds]}</DialogTitle>
       <DialogContent dividers>
         {noAccounts && (
           <Alert severity="warning" sx={{ mb: 2 }}>
@@ -147,7 +151,7 @@ export default function PaymentDialog({
         )}
         <Stack spacing={2}>
           <NumberField
-            label={SIGNED.includes(kind) ? "Сума (+/−)" : "Сума"}
+            label={SIGNED.includes(kind) ? T.ticket.invoices.amountSigned : T.ticket.invoices.amount}
             value={amount}
             onValueChange={(v) => setAmount(v)}
             autoFocus
@@ -173,7 +177,7 @@ export default function PaymentDialog({
             </TextField>
           )}
           <TextField
-            label="Коментар"
+            label={T.finances.tx.comment}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             fullWidth
@@ -183,9 +187,9 @@ export default function PaymentDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Скасувати</Button>
+        <Button onClick={onClose}>{T.common.cancel}</Button>
         <Button variant="contained" onClick={save} disabled={!canSave}>
-          Зберегти
+          {T.common.save}
         </Button>
       </DialogActions>
     </Dialog>

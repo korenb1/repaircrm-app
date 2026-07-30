@@ -21,12 +21,13 @@ import {
 } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { createUser, type CreateUserState } from "@/app/(app)/settings/users-actions";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { AdminUser } from "@/lib/types";
 
 const initialState: CreateUserState = { error: null, ok: false };
 
 export default function UsersManager({ users }: { users: AdminUser[] }) {
+  const T = useT();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action, pending] = useActionState(createUser, initialState);

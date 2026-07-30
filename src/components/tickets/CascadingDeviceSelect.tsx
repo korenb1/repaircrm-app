@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Autocomplete, TextField, Stack } from "@mui/material";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n/context";
 import type { Group, Brand, Model, Modification } from "@/lib/types";
 
 type DbClient = ReturnType<typeof createClient>;
@@ -88,7 +89,6 @@ export async function resolveDeviceSelection(
   return { group_id, brand_id, model_id, modification_id };
 }
 
-const FILL = "Заповніть це поле";
 
 export default function CascadingDeviceSelect({
   value,
@@ -101,6 +101,7 @@ export default function CascadingDeviceSelect({
   showErrors?: boolean;
   disabled?: boolean;
 }) {
+  const T = useT();
   const supabase = createClient();
   const [groups, setGroups] = useState<Group[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -114,7 +115,7 @@ export default function CascadingDeviceSelect({
       .select("*")
       .order("name")
       .then(({ data }) => setGroups(data ?? []));
-  }, [supabase]);
+  }, []);
 
   // load child lists when the parent id changes (also covers external autofill)
   useEffect(() => {
@@ -132,7 +133,7 @@ export default function CascadingDeviceSelect({
     return () => {
       active = false;
     };
-  }, [supabase, value.group_id]);
+  }, [value.group_id]);
 
   useEffect(() => {
     let active = true;
@@ -149,7 +150,7 @@ export default function CascadingDeviceSelect({
     return () => {
       active = false;
     };
-  }, [supabase, value.brand_id]);
+  }, [value.brand_id]);
 
   useEffect(() => {
     let active = true;
@@ -166,7 +167,7 @@ export default function CascadingDeviceSelect({
     return () => {
       active = false;
     };
-  }, [supabase, value.model_id]);
+  }, [value.model_id]);
 
   // Generic free-solo level. Selecting an option sets the id; typing a new name
   // sets the name with id=null. Any change resets all descendant levels.
@@ -209,7 +210,7 @@ export default function CascadingDeviceSelect({
             label={label}
             required={requiredLevel}
             error={err}
-            helperText={err ? FILL : undefined}
+            helperText={err ? T.common.fillRequired : undefined}
           />
         )}
       />
@@ -218,7 +219,7 @@ export default function CascadingDeviceSelect({
 
   return (
     <Stack spacing={2}>
-      {level("Група", groups, "group_id", "group_name", {
+      {level(T.ticket.cascading.group, groups, "group_id", "group_name", {
         brand_id: null,
         brand_name: "",
         model_id: null,
@@ -226,17 +227,17 @@ export default function CascadingDeviceSelect({
         modification_id: null,
         modification_name: "",
       }, disabled, true)}
-      {level("Бренд", brands, "brand_id", "brand_name", {
+      {level(T.ticket.cascading.brand, brands, "brand_id", "brand_name", {
         model_id: null,
         model_name: "",
         modification_id: null,
         modification_name: "",
       }, disabled || !value.group_name, true)}
-      {level("Модель", models, "model_id", "model_name", {
+      {level(T.ticket.cascading.model, models, "model_id", "model_name", {
         modification_id: null,
         modification_name: "",
       }, disabled || !value.brand_name, true)}
-      {level("Модифікація", mods, "modification_id", "modification_name", {}, disabled || !value.model_name, false)}
+      {level(T.ticket.cascading.modification, mods, "modification_id", "modification_name", {}, disabled || !value.model_name, false)}
     </Stack>
   );
 }

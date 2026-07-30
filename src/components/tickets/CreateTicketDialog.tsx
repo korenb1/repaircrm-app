@@ -26,7 +26,7 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { createClient } from "@/lib/supabase/client";
 import { formatEntries, mergePending } from "@/lib/directory";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import { useStatuses } from "@/lib/status-context";
 import CascadingDeviceSelect, {
   type DeviceSelection,
@@ -39,7 +39,6 @@ import DirectoryMultiSelect from "@/components/tickets/DirectoryMultiSelect";
 import PaymentDialog from "@/components/tickets/PaymentDialog";
 import type { Contact, DeviceRow, Profile } from "@/lib/types";
 
-const FILL = "Заповніть це поле";
 
 export default function CreateTicketDialog({
   open,
@@ -50,6 +49,7 @@ export default function CreateTicketDialog({
   onClose: () => void;
   defaultClientId?: number;
 }) {
+  const T = useT();
   const supabase = createClient();
   const router = useRouter();
   const theme = useTheme();
@@ -115,7 +115,7 @@ export default function CreateTicketDialog({
           if (c) setClient(c);
         }
       });
-  }, [open, supabase, defaultClientId]);
+  }, [open, defaultClientId]);
 
   function reset() {
     setManager(null);
@@ -275,7 +275,7 @@ export default function CreateTicketDialog({
     <>
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-        Нова заявка
+        {T.workflows.newTicket}
         <Box sx={{ flexGrow: 1 }} />
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
@@ -300,10 +300,10 @@ export default function CreateTicketDialog({
             renderInput={(p) => (
               <TextField
                 {...p}
-                label="Менеджер"
+                label={T.ticket.general.manager}
                 required
                 error={attempted && !manager}
-                helperText={attempted && !manager ? FILL : undefined}
+                helperText={attempted && !manager ? T.common.fillRequired : undefined}
                 slotProps={{
                   ...p.slotProps,
                   input: {
@@ -337,10 +337,10 @@ export default function CreateTicketDialog({
             renderInput={(p) => (
               <TextField
                 {...p}
-                label="Технік"
+                label={T.ticket.general.technician}
                 required
                 error={attempted && !technician}
-                helperText={attempted && !technician ? FILL : undefined}
+                helperText={attempted && !technician ? T.common.fillRequired : undefined}
                 slotProps={{
                   ...p.slotProps,
                   input: {
@@ -359,7 +359,7 @@ export default function CreateTicketDialog({
           />
 
           <Divider textAlign="left">
-            <Typography variant="subtitle2">Клієнт</Typography>
+            <Typography variant="subtitle2">{T.ticket.general.client}</Typography>
           </Divider>
 
           <ClientAutocomplete
@@ -371,11 +371,11 @@ export default function CreateTicketDialog({
             }
             required
             error={attempted && !client}
-            helperText={attempted && !client ? FILL : undefined}
+            helperText={attempted && !client ? T.common.fillRequired : undefined}
           />
 
           <Divider textAlign="left">
-            <Typography variant="subtitle2">Пристрій</Typography>
+            <Typography variant="subtitle2">{T.ticket.general.device}</Typography>
           </Divider>
 
           <SnImeiField
@@ -384,11 +384,11 @@ export default function CreateTicketDialog({
             onSelectDevice={applyDevice}
             required
             error={attempted && !snImei.trim()}
-            helperText={attempted && !snImei.trim() ? FILL : undefined}
+            helperText={attempted && !snImei.trim() ? T.common.fillRequired : undefined}
           />
           <CascadingDeviceSelect value={device} onChange={setDevice} showErrors={attempted} />
           <TextField
-            label="Стан"
+            label={T.ticket.general.deviceState}
             value={deviceState}
             onChange={(e) => setDeviceState(e.target.value)}
             fullWidth
@@ -396,7 +396,7 @@ export default function CreateTicketDialog({
             minRows={2}
           />
           <DirectoryMultiSelect
-            label="Несправність"
+            label={T.ticket.general.malfunction}
             table="malfunctions"
             options={malfunctionOpts}
             value={malfunction}
@@ -408,12 +408,12 @@ export default function CreateTicketDialog({
             error={attempted && mergePending(malfunction, malfunctionInput).length === 0}
             helperText={
               attempted && mergePending(malfunction, malfunctionInput).length === 0
-                ? FILL
+                ? T.common.fillRequired
                 : undefined
             }
           />
           <DirectoryMultiSelect
-            label="Комплектація"
+            label={T.ticket.general.complectation}
             table="equipment_items"
             options={equipmentOpts}
             value={complectation}
@@ -423,13 +423,13 @@ export default function CreateTicketDialog({
             onInputValueChange={setEquipmentInput}
           />
           <NumberField
-            label="Орієнтовна ціна"
+            label={T.ticket.general.estPrice}
             value={estPrice}
             onValueChange={(v) => setEstPrice(v)}
             fullWidth
           />
           <DateTimePicker
-            label="Термін"
+            label={T.ticket.general.due}
             value={dueDate}
             onChange={(v) => setDueDate(v)}
             format="DD.MM.YYYY HH:mm"
@@ -439,10 +439,10 @@ export default function CreateTicketDialog({
             control={
               <Checkbox checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
             }
-            label="Терміново"
+            label={T.ticket.general.urgent}
           />
           <TextField
-            label="Нотатки менеджера"
+            label={T.ticket.general.managerNotes}
             value={managerNotes}
             onChange={(e) => setManagerNotes(e.target.value)}
             fullWidth
@@ -450,7 +450,7 @@ export default function CreateTicketDialog({
             minRows={2}
           />
           <NumberField
-            label="Передоплата"
+            label={T.ticket.general.prepayment}
             value={prepayment}
             onValueChange={(v) => setPrepayment(v)}
             fullWidth

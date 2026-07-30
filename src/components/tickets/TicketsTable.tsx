@@ -22,8 +22,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useTerminalKeys } from "@/lib/status-context";
 import { filterIcon } from "@/lib/filterIcons";
 import { inPreset } from "@/lib/datePresets";
-import { T } from "@/lib/constants";
-import { formatUAH, formatDateTime, relativeDue } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n";
+import { formatDateTime, relativeDue } from "@/lib/money";
 import type { FilterCriteria, TicketFilter, TicketRow } from "@/lib/types";
 
 // Distinct {id,name} options from rows for one accessor, sorted by name.
@@ -91,6 +92,8 @@ export default function TicketsTable({
   currentUserId: string | null;
   savedFilters?: TicketFilter[];
 }) {
+  const T = useT();
+  const money = useMoney();
   const router = useRouter();
   const supabase = createClient();
   const [search, setSearch] = useState("");
@@ -356,21 +359,21 @@ export default function TicketsTable({
         accessorKey: "est_price",
         header: T.workflows.cols.estPrice,
         size: 110,
-        cell: (c) => formatUAH(c.row.original.est_price),
+        cell: (c) => money(c.row.original.est_price),
       },
       {
         id: "price",
         header: T.workflows.cols.price,
         size: 110,
         accessorFn: (r) => r.price ?? 0,
-        cell: (c) => formatUAH(c.row.original.price),
+        cell: (c) => money(c.row.original.price),
       },
       {
         id: "paid",
         header: T.workflows.cols.paid,
         size: 110,
         accessorFn: (r) => r.paid ?? 0,
-        cell: (c) => formatUAH(c.row.original.paid),
+        cell: (c) => money(c.row.original.paid),
       },
       {
         id: "due",
@@ -402,7 +405,7 @@ export default function TicketsTable({
         },
       },
     ],
-    [],
+    [T, money],
   );
 
   return (
@@ -455,7 +458,7 @@ export default function TicketsTable({
         <Typography variant="body2" sx={{
           color: "text.secondary"
         }}>
-          Всього — {filtered.length}
+          {fmt(T.common.totalCount, { count: filtered.length })}
         </Typography>
       </Stack>
       <Collapse in={panelOpen} unmountOnExit>

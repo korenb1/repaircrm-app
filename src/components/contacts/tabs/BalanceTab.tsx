@@ -5,17 +5,10 @@ import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import PaymentDialog from "@/components/tickets/PaymentDialog";
-import { formatUAH, formatDateTime } from "@/lib/money";
+import { formatDateTime } from "@/lib/money";
+import { useMoney, useT } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n";
 import type { Payment, PaymentKind, TicketRow } from "@/lib/types";
-
-const KIND_LABEL: Record<string, string> = {
-  payment: "Оплата",
-  prepayment: "Передоплата",
-  advance: "Аванс",
-  payout: "Виплата",
-  correction: "Коригування",
-  refund: "Повернення",
-};
 
 // One ledger event (payment rows + ticket reference rows).
 interface Event {
@@ -40,6 +33,8 @@ export default function BalanceTab({
   tickets: TicketRow[];
   readyAt?: Record<number, string>;
 }) {
+  const money = useMoney();
+  const T = useT();
   const [dialog, setDialog] = useState<null | PaymentKind>(null);
 
   const events = useMemo<Event[]>(() => {
@@ -58,11 +53,11 @@ export default function BalanceTab({
       const num = p.ticket_id != null ? ticketNumber.get(p.ticket_id) : undefined;
       let description: string;
       if (num) {
-        if (p.kind === "prepayment") description = `Передоплата заявки ${num}`;
-        else if (p.kind === "payment") description = `Оплата заявки ${num}`;
-        else description = `${KIND_LABEL[p.kind]} заявки ${num}`;
+        if (p.kind === "prepayment") description = fmt(T.contactCard.balance.prepaymentForTicket, { num });
+        else if (p.kind === "payment") description = fmt(T.contactCard.balance.paymentForTicket, { num });
+        else description = fmt(T.contactCard.balance.kindForTicket, { kind: T.finances.txKinds[p.kind], num });
       } else {
-        description = KIND_LABEL[p.kind] + (p.comment ? ` — ${p.comment}` : "");
+        description = T.finances.txKinds[p.kind] + (p.comment ? ` — ${p.comment}` : "");
       }
       rows.push({
         date: p.created_at,
@@ -80,7 +75,7 @@ export default function BalanceTab({
       if (t.status !== "ready" && t.status !== "issued") continue;
       rows.push({
         date: readyAt[t.id] ?? t.created_at,
-        description: `Заявка ${t.number} готова`,
+        description: fmt(T.contactCard.balance.ticketReady, { num: t.number }),
         change: Number(t.price ?? 0),
         ticketId: t.id,
         ticketNumber: t.number,
@@ -94,12 +89,12 @@ export default function BalanceTab({
     () => [
       {
         accessorKey: "date",
-        header: "Дата і час",
+        header: T.contactCard.balance.dateTime,
         cell: (c) => formatDateTime(c.row.original.date),
       },
       {
         accessorKey: "description",
-        header: "Опис події",
+        header: T.contactCard.balance.descriptionCol,
         cell: (c) => {
           const { description, ticketId, ticketNumber, device } = c.row.original;
           if (ticketId == null || !ticketNumber) return description;
@@ -122,20 +117,20 @@ export default function BalanceTab({
       },
       {
         accessorKey: "change",
-        header: "Зміна балансу, ₴",
+        header: T.contactCard.balance.change,
         cell: (c) => {
           const v = c.row.original.change;
           if (v === null) return "—";
           return (
             <Typography variant="body2" color={v < 0 ? "error" : "success.main"}>
               {v > 0 ? "+" : ""}
-              {formatUAH(v)}
+              {money(v)}
             </Typography>
           );
         },
       },
     ],
-    [],
+    [money],
   );
 
   return (
@@ -145,7 +140,7 @@ export default function BalanceTab({
           <Typography variant="body2" sx={{
             color: "text.secondary"
           }}>
-            Баланс складається із суми всіх взаєморозрахунків
+            {T.contactCard.balance.description}
           </Typography>
         </Box>
         <Box sx={{ flexGrow: 1 }} />
@@ -153,15 +148,15 @@ export default function BalanceTab({
           <Typography variant="caption" sx={{
             color: "text.secondary"
           }}>
-            Баланс
+            {T.contactCard.balance.balance}
           </Typography>
           <Typography variant="h6" sx={{
             fontWeight: 700
           }}>
-            {formatUAH(balance)}
+            {money(balance)}
           </Typography>
           <Typography variant="caption" color={balance === 0 ? "success.main" : "text.secondary"}>
-            {balance === 0 ? "Розраховано" : ""}
+            {balance === 0 ? T.contactCard.balance.settled : ""}
           </Typography>
         </Box>
       </Paper>
@@ -169,16 +164,16 @@ export default function BalanceTab({
         mb: 1.5
       }}>
         <Button variant="contained" color="success" onClick={() => setDialog("advance")}>
-          + Аванс
+          {T.contactCard.balance.addAdvance}
         </Button>
         <Button variant="contained" color="error" onClick={() => setDialog("payout")}>
-          − Виплата
+          {T.contactCard.balance.addPayout}
         </Button>
         <Button variant="outlined" onClick={() => setDialog("correction")}>
-          + Коригування
+          {T.contactCard.balance.addCorrection}
         </Button>
       </Stack>
-      <DataTable data={events} columns={cols} dense maxHeight={420} emptyText="Немає подій" storageKey="contact-balance" />
+      <DataTable data={events} columns={cols} dense maxHeight={420} emptyText={T.contactCard.balance.noEvents} storageKey="contact-balance" />
       {dialog && (
         <PaymentDialog
           open

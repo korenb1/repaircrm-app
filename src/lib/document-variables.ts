@@ -3,96 +3,91 @@
 // data for those tokens when a document is printed from a ticket card.
 // Tokens are grounded in the DB schema (contacts / tickets / devices / profiles).
 
-import { formatUAH, formatDate, formatDateTime } from "@/lib/money";
+import { formatMoney, formatDate, formatDateTime } from "@/lib/money";
+import { INTL_LOCALE, type Locale, DEFAULT_LOCALE } from "@/lib/i18n";
+import { DEFAULT_CURRENCY } from "@/lib/i18n/currencies";
 import type { TicketItem, TicketRow } from "@/lib/types";
 
-export interface TemplateVariable {
-  token: string;
-  label: string;
-}
+// Template variable groups. Tokens are inserted verbatim as `{{token}}`.
+// Group titles and per-token labels live in the i18n dictionaries
+// (dict.variableGroups[key] and dict.variableGroups.vars[token]).
+export type VariableGroupKey =
+  | "company"
+  | "client"
+  | "order"
+  | "device"
+  | "finance"
+  | "staff"
+  | "date";
 
 export interface VariableGroup {
-  key: string;
-  label: string;
-  variables: TemplateVariable[];
+  key: VariableGroupKey;
+  tokens: string[];
 }
 
 export const VARIABLE_GROUPS: VariableGroup[] = [
   {
     key: "company",
-    label: "Компанія",
-    variables: [
-      { token: "company.name", label: "Назва компанії" },
-      { token: "company.address", label: "Адреса" },
-      { token: "company.phone", label: "Телефон" },
-      { token: "company.email", label: "Email" },
-      { token: "company.logo", label: "Логотип" },
-      { token: "company.info", label: "Додаткова інформація" },
+    tokens: [
+      "company.name",
+      "company.address",
+      "company.phone",
+      "company.email",
+      "company.logo",
+      "company.info",
     ],
   },
   {
     key: "client",
-    label: "Клієнт",
-    variables: [
-      { token: "client.first_name", label: "Ім'я" },
-      { token: "client.last_name", label: "Прізвище" },
-      { token: "client.phone", label: "Телефон" },
-      { token: "client.email", label: "Email" },
-      { token: "client.address", label: "Адреса" },
+    tokens: [
+      "client.first_name",
+      "client.last_name",
+      "client.phone",
+      "client.email",
+      "client.address",
     ],
   },
   {
     key: "order",
-    label: "Замовлення",
-    variables: [
-      { token: "order.number", label: "Номер заявки" },
-      { token: "order.status", label: "Статус" },
-      { token: "order.created_at", label: "Дата створення" },
-      { token: "order.due_date", label: "Термін" },
-      { token: "order.malfunction", label: "Несправність" },
-      { token: "order.complectation", label: "Комплектація" },
-      { token: "order.device_state", label: "Стан пристрою" },
-      { token: "order.conclusion", label: "Висновок" },
-      { token: "order.manager_notes", label: "Примітки менеджера" },
+    tokens: [
+      "order.number",
+      "order.status",
+      "order.created_at",
+      "order.due_date",
+      "order.malfunction",
+      "order.complectation",
+      "order.device_state",
+      "order.conclusion",
+      "order.manager_notes",
     ],
   },
   {
     key: "device",
-    label: "Пристрій",
-    variables: [
-      { token: "device.group", label: "Група" },
-      { token: "device.brand", label: "Бренд" },
-      { token: "device.model", label: "Модель" },
-      { token: "device.modification", label: "Модифікація" },
-      { token: "device.sn_imei", label: "Серійний номер / IMEI" },
+    tokens: [
+      "device.group",
+      "device.brand",
+      "device.model",
+      "device.modification",
+      "device.sn_imei",
     ],
   },
   {
     key: "finance",
-    label: "Фінанси",
-    variables: [
-      { token: "finance.est_price", label: "Орієнтовна ціна" },
-      { token: "finance.price", label: "Сума до сплати" },
-      { token: "finance.prepayment", label: "Передоплата" },
-      { token: "finance.paid", label: "Оплачено" },
-      { token: "finance.due", label: "Залишок" },
+    tokens: [
+      "finance.est_price",
+      "finance.price",
+      "finance.prepayment",
+      "finance.paid",
+      "finance.due",
     ],
   },
   {
     key: "staff",
-    label: "Співробітники",
-    variables: [
-      { token: "staff.manager", label: "Менеджер" },
-      { token: "staff.technician", label: "Технік" },
-    ],
+    tokens: ["staff.manager", "staff.technician"],
   },
   {
     key: "date",
-    label: "Дата",
-    variables: [
-      { token: "date.today", label: "Сьогодні" },
-      { token: "date.now", label: "Дата і час" },
-    ],
+    tokens: ["date.today", "date.now"],
   },
 ];
 
@@ -103,6 +98,9 @@ export interface TemplateContext {
   items: TicketItem[];
   // Sum of recorded payments (payment + prepayment) for the ticket.
   paid: number;
+  // Display currency + locale for money/date formatting (defaults: USD / en).
+  currency?: string;
+  locale?: Locale;
   // Org identity from company_settings; logoUrl is the resolved public URL.
   company?: {
     name?: string;
@@ -129,6 +127,11 @@ export function buildTemplateValues(ctx: TemplateContext): Record<string, string
   const { ticket: t, items, paid, company } = ctx;
   const price = items.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0);
   const now = new Date();
+  const moneyOpts = {
+    currency: ctx.currency ?? DEFAULT_CURRENCY,
+    locale: INTL_LOCALE[ctx.locale ?? DEFAULT_LOCALE],
+  };
+  const money = (v: number | null | undefined) => formatMoney(v, moneyOpts);
 
   return {
     "company.name": text(company?.name),
@@ -162,11 +165,11 @@ export function buildTemplateValues(ctx: TemplateContext): Record<string, string
     "device.modification": text(t.modification?.name),
     "device.sn_imei": text(t.sn_imei),
 
-    "finance.est_price": formatUAH(t.est_price),
-    "finance.price": formatUAH(price),
-    "finance.prepayment": formatUAH(t.prepayment),
-    "finance.paid": formatUAH(paid),
-    "finance.due": formatUAH(price - paid),
+    "finance.est_price": money(t.est_price),
+    "finance.price": money(price),
+    "finance.prepayment": money(t.prepayment),
+    "finance.paid": money(paid),
+    "finance.due": money(price - paid),
 
     "staff.manager": text(t.manager?.full_name),
     "staff.technician": text(t.technician?.full_name),

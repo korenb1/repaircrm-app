@@ -6,8 +6,8 @@ import AddIcon from "@mui/icons-material/Add";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import CreateContactDialog from "@/components/contacts/CreateContactDialog";
-import { T } from "@/lib/constants";
-import { formatUAH } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n";
 import type { Contact } from "@/lib/types";
 
 type Row = Contact & { balance: number };
@@ -17,6 +17,8 @@ function fullName(c: Contact) {
 }
 
 export default function ContactsTable({ rows }: { rows: Row[] }) {
+  const T = useT();
+  const money = useMoney();
   const [tab, setTab] = useState(0); // 0 = people, 1 = organizations
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -85,10 +87,10 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
         id: "balance",
         header: T.contacts.cols.balance,
         accessorFn: (r) => r.balance,
-        cell: (c) => formatUAH(c.row.original.balance),
+        cell: (c) => money(c.row.original.balance),
       },
     ],
-    [],
+    [T, money],
   );
 
   return (
@@ -116,7 +118,7 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
         </Button>
         <TextField
           size="small"
-          placeholder="Пошук…"
+          placeholder={T.common.search}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ width: 280 }}
@@ -125,7 +127,7 @@ export default function ContactsTable({ rows }: { rows: Row[] }) {
         <Typography variant="body2" sx={{
           color: "text.secondary"
         }}>
-          Всього — {filtered.length}
+          {fmt(T.common.totalCount, { count: filtered.length })}
         </Typography>
       </Stack>
       <DataTable data={filtered} columns={cols} dense storageKey="contacts" />

@@ -6,23 +6,10 @@ import AddIcon from "@mui/icons-material/Add";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import { createClient } from "@/lib/supabase/client";
-import { formatUAH, formatDateTime } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
+import { formatDateTime } from "@/lib/money";
 import type { Invoice, Payment } from "@/lib/types";
 import PaymentDialog from "@/components/tickets/PaymentDialog";
-
-const INVOICE_STATUS: Record<string, string> = {
-  pending: "Очікує",
-  paid: "Оплачено",
-  cancelled: "Скасовано",
-};
-
-const PAYMENT_KIND: Record<string, string> = {
-  payment: "Оплата",
-  prepayment: "Передоплата",
-  payout: "Виплата",
-  advance: "Аванс",
-  correction: "Коригування",
-};
 
 export default function InvoicesTab({
   ticketId,
@@ -37,6 +24,8 @@ export default function InvoicesTab({
   payments: Payment[];
   locked?: boolean;
 }) {
+  const money = useMoney();
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const [dialog, setDialog] = useState<null | "prepayment" | "payout">(null);
@@ -61,45 +50,45 @@ export default function InvoicesTab({
 
   const invoiceCols = useMemo<ColumnDef<Invoice, any>[]>(
     () => [
-      { accessorKey: "id", header: "№" },
+      { accessorKey: "id", header: T.ticket.invoices.number },
       {
         accessorKey: "created_at",
-        header: "Створено",
+        header: T.ticket.invoices.created,
         cell: (c) => formatDateTime(c.row.original.created_at),
       },
       {
         accessorKey: "status",
-        header: "Статус",
-        cell: (c) => INVOICE_STATUS[c.row.original.status] ?? c.row.original.status,
+        header: T.ticket.invoices.status,
+        cell: (c) => (T.ticket.invoices as Record<string, string>)[c.row.original.status] ?? c.row.original.status,
       },
       {
         accessorKey: "payment_method",
-        header: "Метод оплати",
+        header: T.ticket.invoices.paymentMethod,
         cell: (c) => c.row.original.payment_method ?? "—",
       },
       {
         accessorKey: "amount",
-        header: "Сума",
-        cell: (c) => formatUAH(c.row.original.amount),
+        header: T.ticket.invoices.amount,
+        cell: (c) => money(c.row.original.amount),
       },
     ],
-    [],
+    [money, T],
   );
 
   const paymentCols = useMemo<ColumnDef<Payment, any>[]>(
     () => [
       {
         accessorKey: "created_at",
-        header: "Дата і час",
+        header: T.ticket.invoices.dateTime,
         cell: (c) => formatDateTime(c.row.original.created_at),
       },
       {
         id: "comment",
-        header: "Коментар",
+        header: T.ticket.invoices.comment,
         cell: (c) => (
           <Box>
             <Typography variant="body2">
-              {PAYMENT_KIND[c.row.original.kind] ?? c.row.original.kind}
+              {T.finances.txKinds[c.row.original.kind as keyof typeof T.finances.txKinds] ?? c.row.original.kind}
             </Typography>
             {c.row.original.comment && (
               <Typography variant="caption" sx={{
@@ -113,18 +102,18 @@ export default function InvoicesTab({
       },
       {
         accessorKey: "amount",
-        header: "Сума",
+        header: T.ticket.invoices.amount,
         cell: (c) => (
           <Typography
             variant="body2"
             color={Number(c.row.original.amount) < 0 ? "error" : "success.main"}
           >
-            {formatUAH(c.row.original.amount)}
+            {money(c.row.original.amount)}
           </Typography>
         ),
       },
     ],
-    [],
+    [money, T],
   );
 
   return (
@@ -133,7 +122,7 @@ export default function InvoicesTab({
         mb: 1.5
       }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={addInvoice} disabled={busy || locked}>
-          Рахунок
+          {T.ticket.invoices.addInvoice}
         </Button>
       </Stack>
       <DataTable
@@ -141,7 +130,7 @@ export default function InvoicesTab({
         columns={invoiceCols}
         dense
         maxHeight={240}
-        emptyText="Ще немає рахунків"
+        emptyText={T.ticket.invoices.noInvoices}
       />
       <Stack direction="row" spacing={1.5} sx={{
         my: 1.5
@@ -152,7 +141,7 @@ export default function InvoicesTab({
           onClick={() => setDialog("prepayment")}
           disabled={!clientId || locked}
         >
-          + Передоплата
+          {T.ticket.invoices.addPrepayment}
         </Button>
         <Button
           variant="contained"
@@ -160,7 +149,7 @@ export default function InvoicesTab({
           onClick={() => setDialog("payout")}
           disabled={!clientId || locked}
         >
-          − Виплата
+          {T.ticket.invoices.addPayout}
         </Button>
       </Stack>
       <DataTable
@@ -168,7 +157,7 @@ export default function InvoicesTab({
         columns={paymentCols}
         dense
         maxHeight={240}
-        emptyText="Ще немає оплат"
+        emptyText={T.ticket.invoices.noPayments}
       />
       {dialog && clientId && (
         <PaymentDialog

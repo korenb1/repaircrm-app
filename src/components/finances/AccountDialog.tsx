@@ -12,7 +12,7 @@ import {
   TextField,
 } from "@mui/material";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { FinanceAccountType, FinancialAccount } from "@/lib/types";
 
 const TYPE_OPTIONS: FinanceAccountType[] = ["cash", "cashless", "card"];
@@ -28,6 +28,7 @@ export default function AccountDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
 
   const editing = Boolean(account);
   const [name, setName] = useState(account?.name ?? "");

@@ -14,7 +14,7 @@ import {
 import NumberField from "@/components/NumberField";
 import ClientAutocomplete from "@/components/tickets/ClientAutocomplete";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type {
   Contact,
   FinanceCategory,
@@ -48,6 +48,7 @@ export default function TransactionDialog({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const T = useT();
   const isEdit = Boolean(initial);
 
   const [contact, setContact] = useState<Contact | null>(

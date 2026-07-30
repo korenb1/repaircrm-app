@@ -30,6 +30,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useT } from "@/lib/i18n/context";
 import {
   Box,
   Table,
@@ -132,7 +133,7 @@ function SortableHeader<T>({ header }: { header: Header<T, unknown> }) {
 export default function DataTable<T>({
   data,
   columns,
-  emptyText = "Немає даних",
+  emptyText,
   maxHeight = "calc(100vh - 230px)",
   dense = false,
   pageSize = 50,
@@ -141,6 +142,8 @@ export default function DataTable<T>({
   getRowId,
   defaultExpanded = true,
 }: DataTableProps<T>) {
+  const T = useT();
+  const resolvedEmptyText = emptyText ?? T.common.noData;
   const initialOrder = useMemo(() => columns.map(colId), [columns]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnOrder, setColumnOrder] = useState<string[]>(initialOrder);
@@ -240,16 +243,16 @@ export default function DataTable<T>({
 
   return (
     <Box>
-      <TableContainer ref={containerRef} component={Paper} sx={{ maxHeight, width: "100%" }}>
-        <Table
-          stickyHeader
-          size={dense ? "small" : "medium"}
-          sx={{ width: "100%", minWidth: table.getTotalSize(), tableLayout: "fixed" }}
-        >
-          <DndContext
-            sensors={sensors}
-            modifiers={[restrictToHorizontalAxis]}
-            onDragEnd={handleDragEnd}
+      <DndContext
+        sensors={sensors}
+        modifiers={[restrictToHorizontalAxis]}
+        onDragEnd={handleDragEnd}
+      >
+        <TableContainer ref={containerRef} component={Paper} sx={{ maxHeight, width: "100%" }}>
+          <Table
+            stickyHeader
+            size={dense ? "small" : "medium"}
+            sx={{ width: "100%", minWidth: table.getTotalSize(), tableLayout: "fixed" }}
           >
             <TableHead>
               {table.getHeaderGroups().map((hg) => (
@@ -262,13 +265,12 @@ export default function DataTable<T>({
                 </TableRow>
               ))}
             </TableHead>
-          </DndContext>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={leafCount}>
                   <Box sx={{ py: 6, textAlign: "center" }}>
-                    <Typography sx={{ color: "text.secondary" }}>{emptyText}</Typography>
+                    <Typography sx={{ color: "text.secondary" }}>{resolvedEmptyText}</Typography>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -342,6 +344,7 @@ export default function DataTable<T>({
           )}
         </Table>
       </TableContainer>
+      </DndContext>
       {showPagination && (
         <TablePagination
           component="div"

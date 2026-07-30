@@ -12,11 +12,14 @@ import {
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
+import { useT } from "@/lib/i18n/context";
 
 const BUCKET = "ticket-files";
 
 export default function TimelineComposer({ ticketId }: { ticketId: number }) {
   const router = useRouter();
+  const T = useT();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
@@ -24,8 +27,8 @@ export default function TimelineComposer({ ticketId }: { ticketId: number }) {
   const [error, setError] = useState<string | null>(null);
 
   async function currentUserId(): Promise<string | null> {
-    const { data } = await supabase.auth.getUser();
-    return data.user?.id ?? null;
+    const { data } = await authClient.getSession();
+    return data?.user.id ?? null;
   }
 
   async function postComment() {
@@ -73,7 +76,7 @@ export default function TimelineComposer({ ticketId }: { ticketId: number }) {
       }
       router.refresh();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Помилка завантаження");
+      setError(e instanceof Error ? e.message : T.ticket.timeline.uploadError);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -88,7 +91,7 @@ export default function TimelineComposer({ ticketId }: { ticketId: number }) {
           size="small"
           multiline
           maxRows={4}
-          placeholder="Додати коментар…"
+          placeholder={T.ticket.timeline.addComment}
           value={text}
           disabled={busy}
           onChange={(e) => setText(e.target.value)}
@@ -108,7 +111,7 @@ export default function TimelineComposer({ ticketId }: { ticketId: number }) {
           sx={{ minWidth: 0, px: 1.5, height: 40 }}
           disabled={busy}
           onClick={() => fileRef.current?.click()}
-          title="Прикріпити файл"
+          title={T.ticket.timeline.attachFile}
         >
           <AttachFileIcon fontSize="small" />
         </Button>
@@ -118,7 +121,7 @@ export default function TimelineComposer({ ticketId }: { ticketId: number }) {
           sx={{ minWidth: 0, px: 1.5, height: 40 }}
           disabled={busy || !text.trim()}
           onClick={postComment}
-          title="Надіслати (Cmd/Ctrl+Enter)"
+          title={T.ticket.timeline.send}
         >
           {busy ? <CircularProgress size={18} color="inherit" /> : <SendIcon fontSize="small" />}
         </Button>

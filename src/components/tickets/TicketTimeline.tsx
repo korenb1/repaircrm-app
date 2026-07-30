@@ -11,7 +11,7 @@ import CommentIcon from "@mui/icons-material/CommentOutlined";
 import AttachFileIcon from "@mui/icons-material/AttachFileOutlined";
 import ImageIcon from "@mui/icons-material/ImageOutlined";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import TimelineComposer from "@/components/tickets/tabs/TimelineComposer";
 import ImageLightbox, { type LightboxImage } from "@/components/ui/ImageLightbox";
 import type { TicketEventKind, TicketEventRow } from "@/lib/types";
@@ -54,18 +54,6 @@ function fmt(iso: string) {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function formatSize(bytes: number) {
-  if (!bytes) return "";
-  const units = ["Б", "КБ", "МБ", "ГБ"];
-  let n = bytes;
-  let i = 0;
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i++;
-  }
-  return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
-
 // Always-visible activity panel on the right of the ticket card: header, a
 // scrollable feed (oldest first), then a pinned comment/file composer at the
 // bottom. Designed to fill its parent's height (parent controls the box height).
@@ -76,8 +64,21 @@ export default function TicketTimeline({
   ticketId: number;
   events: TicketEventRow[];
 }) {
+  const T = useT();
   const supabase = createClient();
   const [lightbox, setLightbox] = useState<number | null>(null);
+
+  function formatSize(bytes: number) {
+    if (!bytes) return "";
+    const units = [T.common.unitB, T.common.unitKB, T.common.unitMB, T.common.unitGB];
+    let n = bytes;
+    let i = 0;
+    while (n >= 1024 && i < units.length - 1) {
+      n /= 1024;
+      i++;
+    }
+    return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  }
 
   const publicUrl = (path: string) =>
     supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
@@ -116,7 +117,7 @@ export default function TicketTimeline({
       <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0, p: 2 }}>
         {events.length === 0 ? (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Поки що немає подій.
+            {T.ticket.timeline.noEvents}
           </Typography>
         ) : (
           <Stack spacing={0}>

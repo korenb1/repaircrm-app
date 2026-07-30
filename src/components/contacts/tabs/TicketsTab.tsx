@@ -7,7 +7,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
 import CreateTicketDialog from "@/components/tickets/CreateTicketDialog";
-import { formatUAH, formatDateTime, relativeDue } from "@/lib/money";
+import { formatDateTime, relativeDue } from "@/lib/money";
+import { useMoney, useT } from "@/lib/i18n/context";
 import type { TicketRow } from "@/lib/types";
 
 export default function TicketsTab({
@@ -17,13 +18,15 @@ export default function TicketsTab({
   clientId: number;
   tickets: TicketRow[];
 }) {
+  const money = useMoney();
+  const T = useT();
   const [open, setOpen] = useState(false);
 
   const cols = useMemo<ColumnDef<TicketRow, any>[]>(
     () => [
       {
         accessorKey: "number",
-        header: "№",
+        header: T.contactCard.tickets.number,
         cell: (c) => (
           <Link
             href={`/workflows/${c.row.original.id}`}
@@ -35,28 +38,28 @@ export default function TicketsTab({
       },
       {
         id: "created",
-        header: "Створено",
+        header: T.contactCard.tickets.created,
         cell: (c) => formatDateTime(c.row.original.created_at),
       },
       {
         id: "due",
-        header: "Термін",
+        header: T.contactCard.tickets.due,
         cell: (c) => relativeDue(c.row.original.due_date).absolute,
       },
       {
         accessorKey: "status",
-        header: "Статус",
+        header: T.contactCard.tickets.status,
         cell: (c) => (
           <StatusBadge ticketId={c.row.original.id} status={c.row.original.status} />
         ),
       },
       {
         id: "amount",
-        header: "Сума, ₴",
-        cell: (c) => formatUAH(c.row.original.price),
+        header: T.contactCard.tickets.amount,
+        cell: (c) => money(c.row.original.price),
       },
     ],
-    [],
+    [T, money],
   );
 
   return (
@@ -65,10 +68,10 @@ export default function TicketsTab({
         mb: 1.5
       }}>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
-          Заявка
+          {T.contactCard.tickets.newTicket}
         </Button>
       </Stack>
-      <DataTable data={tickets} columns={cols} dense emptyText="Немає заявок" storageKey="contact-tickets" />
+      <DataTable data={tickets} columns={cols} dense emptyText={T.contactCard.tickets.noTickets} storageKey="contact-tickets" />
       <CreateTicketDialog
         open={open}
         onClose={() => setOpen(false)}

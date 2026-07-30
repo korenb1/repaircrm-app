@@ -16,7 +16,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { createClient } from "@/lib/supabase/client";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { CompanySettings } from "@/lib/types";
 
 const BUCKET = "company-files";
@@ -26,6 +26,7 @@ export default function CompanySettingsManager({
 }: {
   company: CompanySettings;
 }) {
+  const T = useT();
   const router = useRouter();
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);

@@ -3,8 +3,7 @@ import { Box, Paper, Typography, alpha } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PaidIcon from "@mui/icons-material/Paid";
-import { T } from "@/lib/constants";
-import { formatUAH } from "@/lib/money";
+import { useT, useMoney } from "@/lib/i18n/context";
 
 function Card({
   icon,
@@ -70,6 +69,8 @@ export default function SummaryCards({
   overdue: number;
   receivable: number;
 }) {
+  const T = useT();
+  const money = useMoney();
   return (
     <Box sx={{ display: "flex", gap: 1.5, mb: 2, justifyContent: "flex-end" }}>
       <Card
@@ -86,7 +87,7 @@ export default function SummaryCards({
       />
       <Card
         icon={<PaidIcon />}
-        value={formatUAH(receivable)}
+        value={money(receivable)}
         label={T.workflows.cards.receivable}
         accent="#37474f"
       />

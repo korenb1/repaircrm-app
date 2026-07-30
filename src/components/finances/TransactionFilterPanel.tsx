@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { DATE_PRESETS } from "@/lib/datePresets";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { FinanceCategory } from "@/lib/types";
 
 export interface TxFilter {
@@ -30,6 +30,7 @@ export default function TransactionFilterPanel({
   onChange: (f: TxFilter) => void;
   onClose: () => void;
 }) {
+  const T = useT();
   return (
     <Popover
       open={Boolean(anchorEl)}
@@ -52,8 +53,8 @@ export default function TransactionFilterPanel({
             fullWidth
           >
             {DATE_PRESETS.map((p) => (
-              <MenuItem key={p.key} value={p.key}>
-                {p.label}
+              <MenuItem key={p} value={p}>
+                {T.datePresets[p]}
               </MenuItem>
             ))}
           </TextField>

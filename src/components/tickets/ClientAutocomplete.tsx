@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CreateContactDialog from "@/components/contacts/CreateContactDialog";
+import { useT } from "@/lib/i18n/context";
 import { phoneMatches } from "@/lib/phone";
 import type { Contact } from "@/lib/types";
 
@@ -41,6 +42,7 @@ export default function ClientAutocomplete({
   helperText?: string;
   disabled?: boolean;
 }) {
+  const T = useT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [prefillPhone, setPrefillPhone] = useState("");
 
@@ -85,7 +87,7 @@ export default function ClientAutocomplete({
           <Box component="li" {...props} key={isCreate(o) ? "__create" : o.id}>
             {isCreate(o) ? (
               <Typography sx={{ display: "flex", alignItems: "center", fontWeight: 600 }}>
-                <AddIcon fontSize="small" sx={{ mr: 0.5 }} /> КОНТАКТ
+                <AddIcon fontSize="small" sx={{ mr: 0.5 }} /> {T.ticket.general.createContact}
               </Typography>
             ) : (
               contactLabel(o)
@@ -95,8 +97,8 @@ export default function ClientAutocomplete({
         renderInput={(p) => (
           <TextField
             {...p}
-            label="Клієнт"
-            placeholder="Ім'я або телефон"
+            label={T.ticket.general.client}
+            placeholder={T.ticket.general.clientPlaceholder}
             required={required}
             error={error}
             helperText={helperText}

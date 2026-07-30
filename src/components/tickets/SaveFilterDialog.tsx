@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { createClient } from "@/lib/supabase/client";
 import { FILTER_ICON_KEYS, filterIcon } from "@/lib/filterIcons";
-import { T } from "@/lib/constants";
+import { useT } from "@/lib/i18n/context";
 import type { FilterCriteria, TicketFilter } from "@/lib/types";
 
 export default function SaveFilterDialog({
@@ -30,6 +30,7 @@ export default function SaveFilterDialog({
   criteria: FilterCriteria;
   onSaved: (filter: TicketFilter) => void;
 }) {
+  const T = useT();
   const supabase = createClient();
   const F = T.workflows.filters;
 

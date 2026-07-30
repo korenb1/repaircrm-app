@@ -23,6 +23,8 @@ export interface Profile {
   phone: string;
   telegram_username: string; // stored without leading '@'
   avatar_path: string | null;
+  language: string; // UI locale: 'en' | 'ru' | 'uk'
+  currency: string; // display currency code, e.g. 'USD'
   created_at: string;
 }
 

@@ -1,22 +1,63 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Divider,
   Stack,
   TextField,
   Typography,
   Alert,
 } from "@mui/material";
-import { T } from "@/lib/constants";
+import KeyIcon from "@mui/icons-material/Key";
+import { getDict } from "@/lib/i18n";
+import { authClient } from "@/lib/auth-client";
 import { login, type LoginState } from "./actions";
+
+// Pre-auth screen: no I18nProvider above it, so use the default-locale dict.
+const T = getDict(undefined);
 
 const initialState: LoginState = { error: null };
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, initialState);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Conditional UI: browsers that support it suggest passkeys from the
+  // email field's autofill (autoComplete="username webauthn").
+  useEffect(() => {
+    if (
+      typeof window.PublicKeyCredential === "undefined" ||
+      !PublicKeyCredential.isConditionalMediationAvailable
+    ) {
+      return;
+    }
+    let cancelled = false;
+    PublicKeyCredential.isConditionalMediationAvailable().then((available) => {
+      if (!available || cancelled) return;
+      authClient.signIn.passkey({
+        autoFill: true,
+        fetchOptions: { onSuccess: () => router.push("/workflows") },
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  const signInWithPasskey = async () => {
+    setPasskeyError(null);
+    const result = await authClient.signIn.passkey();
+    if (result?.error) {
+      setPasskeyError(T.login.passkeyError);
+      return;
+    }
+    router.push("/workflows");
+  };
 
   return (
     <Box
@@ -49,7 +90,7 @@ export default function LoginPage() {
                 type="email"
                 defaultValue="admin@repair.local"
                 fullWidth
-                autoComplete="username"
+                autoComplete="username webauthn"
                 slotProps={{ inputLabel: { shrink: true } }}
               />
               <TextField
@@ -61,6 +102,7 @@ export default function LoginPage() {
                 slotProps={{ inputLabel: { shrink: true } }}
               />
               {state.error && <Alert severity="error">{state.error}</Alert>}
+              {passkeyError && <Alert severity="error">{passkeyError}</Alert>}
               <Button
                 type="submit"
                 variant="contained"
@@ -69,6 +111,17 @@ export default function LoginPage() {
                 fullWidth
               >
                 {T.login.submit}
+              </Button>
+              <Divider />
+              <Button
+                type="button"
+                variant="outlined"
+                size="large"
+                startIcon={<KeyIcon />}
+                onClick={signInWithPasskey}
+                fullWidth
+              >
+                {T.login.passkey}
               </Button>
             </Stack>
           </form>

@@ -52,6 +52,4 @@ insert into service_catalog (kind, name, sku, price) values
 
 -- Sample contacts
 insert into contacts (type, first_name, last_name, phone, email, address, note) values
-  ('person', 'Олексій', 'Петренко', '+380 (95) 718 98 91', 'oleksii@example.com', 'м. Київ, вул. Хрещатик 1', ''),
-  ('person', 'Наталя', '', '+380 (96) 504 06 13', NULL, NULL, ''),
-  ('organization', 'Big Boss store', '', '+380 (50) 384 16 14', NULL, NULL, '');
+  ('person', 'Test Contact', '', '+380 (50) 123 45 67', NULL, NULL, '');

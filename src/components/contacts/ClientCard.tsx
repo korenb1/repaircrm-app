@@ -1,14 +1,28 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import SaveIcon from "@mui/icons-material/Save";
-import { Box, Button, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import {
+  Alert,
+  Box,
+  Button,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import GeneralTab from "@/components/contacts/tabs/GeneralTab";
 import BalanceTab from "@/components/contacts/tabs/BalanceTab";
 import TicketsTab from "@/components/contacts/tabs/TicketsTab";
 import DevicesTab from "@/components/contacts/tabs/DevicesTab";
 import DocumentsTab from "@/components/contacts/tabs/DocumentsTab";
-import { T } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n/context";
+import { fmt } from "@/lib/i18n";
 import type {
   Contact,
   ContactDocument,
@@ -36,6 +50,8 @@ export default function ClientCard({
   documents: ContactDocument[];
   embedded?: boolean;
 }) {
+  const T = useT();
+  const router = useRouter();
   const [tab, setTab] = useState(0);
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
 
@@ -44,6 +60,8 @@ export default function ClientCard({
   const saveRef = useRef<(() => Promise<void>) | null>(null);
   const [canSave, setCanSave] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const registerSave = useCallback((fn: (() => Promise<void>) | null) => {
     saveRef.current = fn;
@@ -58,6 +76,26 @@ export default function ClientCard({
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(fmt(T.contactCard.deleteConfirm, { name: fullName }))) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const supabase = createClient();
+    const { error } = await supabase.from("contacts").delete().eq("id", contact.id);
+    setDeleting(false);
+    if (error) {
+      // 23503 = foreign_key_violation — tickets/devices still reference the contact.
+      setDeleteError(
+        error.code === "23503"
+          ? T.contactCard.deleteHasTickets
+          : T.contactCard.deleteError,
+      );
+      return;
+    }
+    router.push("/contacts");
+    router.refresh();
   }
 
   return (
@@ -80,7 +118,7 @@ export default function ClientCard({
         <Box sx={{ flexGrow: 1 }} />
         {!embedded && (
           <Link href="/contacts" style={{ color: "#1976d2", textDecoration: "none" }}>
-            ← До списку
+            {T.ticket.card.backToList}
           </Link>
         )}
       </Stack>
@@ -122,21 +160,50 @@ export default function ClientCard({
           {tab === 3 && <DevicesTab tickets={tickets} />}
           {tab === 4 && <DocumentsTab contactId={contact.id} documents={documents} />}
         </Box>
-        {canSave && (
-          <Box
-            sx={{
-              p: 2,
-              borderTop: "1px solid #eee",
-              display: "flex",
-              justifyContent: "flex-end",
-              flexShrink: 0,
-            }}
-          >
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>
+        <Box
+          sx={{
+            p: 2,
+            borderTop: "1px solid #eee",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 1,
+            flexShrink: 0,
+          }}
+        >
+          {deleteError && (
+            <Alert
+              severity="error"
+              sx={{ py: 0, mr: "auto" }}
+              onClose={() => setDeleteError(null)}
+            >
+              {deleteError}
+            </Alert>
+          )}
+          <Tooltip title={T.contactCard.deleteContact}>
+            <span>
+              <Button
+                color="error"
+                variant="outlined"
+                onClick={handleDelete}
+                disabled={deleting || saving}
+                sx={{ minWidth: 0, px: 1 }}
+              >
+                <DeleteIcon />
+              </Button>
+            </span>
+          </Tooltip>
+          {canSave && (
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={handleSave}
+              disabled={saving || deleting}
+            >
               {T.common.save}
             </Button>
-          </Box>
-        )}
+          )}
+        </Box>
       </Paper>
     </Box>
   );
