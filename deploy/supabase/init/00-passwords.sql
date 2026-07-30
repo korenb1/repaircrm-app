@@ -39,3 +39,17 @@ alter user supabase_storage_admin with password :'pgpass';
 alter user supabase_auth_admin with password :'pgpass';
 alter user supabase_admin with password :'pgpass';
 alter user supabase_read_only_user with password :'pgpass';
+
+-- Create graphql_public schema required by PostgREST config
+create schema if not exists graphql_public;
+
+-- Grant necessary permissions to storage and auth roles
+grant connect on database postgres to supabase_storage_admin;
+grant create on database postgres to supabase_storage_admin;
+grant all on schema public to supabase_storage_admin;
+grant all on schema public to supabase_auth_admin;
+
+-- Create storage schema for the storage-api service
+create schema if not exists storage;
+grant usage, create on schema storage to supabase_storage_admin;
+grant usage on schema storage to anon, authenticated, service_role;
