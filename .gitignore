@@ -33,3 +33,5 @@ supabase/.temp
 
 # playwright-cli test artifacts
 .playwright-cli/
+
+.claude/
