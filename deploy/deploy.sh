@@ -49,6 +49,12 @@ done
 log "$ENV: applying migrations"
 npx supabase db push --db-url "$DATABASE_URL" --include-all --yes
 
+log "$ENV: restarting PostgREST (schema cache reload)"
+cd "$ROOT/supabase"
+docker compose restart rest
+sleep 3
+cd "$APP"
+
 log "$ENV: building"
 npm run build
 

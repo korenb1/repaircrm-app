@@ -52,7 +52,9 @@ services:
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
       # Mirrors supabase/config.toml [api].schemas + extra_search_path.
-      PGRST_DB_SCHEMAS: public,graphql_public
+      # graphql_public omitted — the app doesn't use it and its absence at
+      # startup would prevent PostgREST from loading the schema cache (503).
+      PGRST_DB_SCHEMAS: public
       PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_MAX_ROWS: 1000
