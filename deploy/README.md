@@ -57,7 +57,7 @@ Let them propagate *before* reloading Caddy, or ACME issuance fails.
 
    ```bash
    ssh root@vps
-   REPO=git@github.com:you/repaircrm-app.git bash <(curl -fsSL https://raw.githubusercontent.com/you/repaircrm-app/main/deploy/bootstrap.sh)
+   REPO=git@github.com:korenb1/repaircrm-app.git bash <(curl -fsSL https://raw.githubusercontent.com/korenb1/repaircrm-app/main/deploy/bootstrap.sh)
    ```
 
    Or clone first and `bash deploy/bootstrap.sh`. Private repo → put a deploy
