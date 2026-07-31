@@ -1,29 +1,32 @@
 -- ============================================================
--- auth.uid() shim for Better Auth compatibility
+-- auth.uid() for this stack
 -- ============================================================
--- Better Auth uses the "user" table in public schema, not auth.users.
--- This migration creates the auth schema and an auth.uid() function
--- that extracts the user ID from the JWT token, maintaining compatibility
--- with existing RLS policies and triggers that reference auth.uid().
+-- Identity is Better Auth, not GoTrue, so auth.users never exists here — but
+-- the RLS policies and event triggers in later migrations still call
+-- auth.uid() to read the caller out of the JWT, and those JWTs are minted in
+-- src/lib/supabase/jwt.ts with the user id in `sub`.
+--
+-- The definition has to cover both GUC shapes: PostgREST runs with
+-- db-use-legacy-gucs=false, which sets `request.jwt.claims` (a JSON blob),
+-- while the stock supabase/postgres auth.uid() reads the legacy per-claim
+-- `request.jwt.claim.sub`. nullif() before the ::jsonb cast keeps anon
+-- requests (empty setting) returning null instead of erroring.
 -- ============================================================
 
 create schema if not exists auth;
 
--- Extract user ID from JWT token (same behavior as Supabase's auth.uid())
--- The JWT token is set by Better Auth and contains the user ID in the 'sub' claim
 create or replace function auth.uid()
 returns uuid
 language sql stable
 as $$
   select nullif(
     coalesce(
-      current_setting('request.jwt.claim.sub', true),
-      current_setting('request.jwt.claims', true)::json->>'sub'
+      nullif(current_setting('request.jwt.claim.sub', true), ''),
+      nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
     ),
     ''
-  )::uuid;
+  )::uuid
 $$;
 
--- Grant execute to all roles that need it
 grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
