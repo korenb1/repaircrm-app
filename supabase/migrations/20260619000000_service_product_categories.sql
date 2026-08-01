@@ -22,8 +22,8 @@ create unique index service_categories_one_default_root_per_kind
   where is_default and parent_id is null;
 
 insert into service_categories (kind, name, is_default, sort_order) values
-  ('service', 'Усі послуги', true, 0),
-  ('product', 'Усі товари',  true, 0);
+  ('service', 'All services', true, 0),
+  ('product', 'All products',  true, 0);
 
 alter table service_catalog
   add column category_id int references service_categories(id) on delete set null,

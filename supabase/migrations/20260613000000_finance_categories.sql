@@ -21,10 +21,10 @@ create unique index finance_categories_one_default_per_kind
 
 -- Seed a couple of common buckets, one default each.
 insert into finance_categories (kind, name, is_default_closed, sort_order) values
-  ('revenue', 'Ремонт',     true,  1),
-  ('revenue', 'Продаж',     false, 2),
-  ('expense', 'Запчастини', true,  1),
-  ('expense', 'Оренда',     false, 2);
+  ('revenue', 'Repair',     true,  1),
+  ('revenue', 'Sell',     false, 2),
+  ('expense', 'Parts', true,  1),
+  ('expense', 'Rent',     false, 2);
 
 -- RLS + grants (match init.sql pattern; new tables are not auto-granted)
 alter table finance_categories enable row level security;

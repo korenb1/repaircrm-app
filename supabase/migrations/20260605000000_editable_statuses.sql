@@ -24,12 +24,12 @@ create table status_transitions (
 
 -- seed the existing six statuses (values mirror the former STATUSES constant)
 insert into ticket_statuses (key, label, color, bg, sort_order, is_terminal, is_default) values
-  ('draft',            'Чернетка',            '#1976d2', '#e3f2fd', 1, false, false),
-  ('new',              'Нове',                '#0288d1', '#e1f5fe', 2, false, true),
-  ('in_progress',      'В роботі',            '#2e7d32', '#e8f5e9', 3, false, false),
-  ('ready',            'Готове',              '#2e7d32', '#c8e6c9', 4, false, false),
-  ('issued',           'Видано',              '#616161', '#eeeeee', 5, true,  false),
-  ('return_no_repair', 'Видати без ремонту',  '#ffffff', '#ed6c02', 6, true,  false);
+  ('draft',            'Draft',            '#1976d2', '#e3f2fd', 1, false, false),
+  ('new',              'New',                '#0288d1', '#e1f5fe', 2, false, true),
+  ('in_progress',      'In progress',            '#2e7d32', '#e8f5e9', 3, false, false),
+  ('ready',            'Ready',              '#2e7d32', '#c8e6c9', 4, false, false),
+  ('issued',           'Issued',              '#616161', '#eeeeee', 5, true,  false),
+  ('return_no_repair', 'Return no repaired',  '#ffffff', '#ed6c02', 6, true,  false);
 
 -- seed a sensible default workflow
 insert into status_transitions (from_key, to_key) values

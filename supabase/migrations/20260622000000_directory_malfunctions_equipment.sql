@@ -21,12 +21,6 @@ create table equipment_items (
   created_at timestamptz default now()
 );
 
--- Seed a few common entries.
-insert into malfunctions (name, sort_order) values
-  ('Не вмикається', 1), ('Розбитий екран', 2), ('Не заряджається', 3), ('Залиття', 4);
-insert into equipment_items (name, sort_order) values
-  ('Коробка', 1), ('Зарядний пристрій', 2), ('Кабель', 3), ('Чохол', 4), ('Навушники', 5);
-
 alter table malfunctions    enable row level security;
 alter table equipment_items enable row level security;
 
