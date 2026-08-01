@@ -77,8 +77,13 @@ for env in prod staging; do
 done
 chown -R deploy:deploy /srv/repaircrm
 
-log "systemd unit"
-cp /srv/repaircrm/prod/app/deploy/systemd/repaircrm@.service /etc/systemd/system/
+log "systemd units"
+# The autodeploy timer is installed but not enabled — it would fire before the
+# env files exist. Enable it at step 6, after the first manual deploy is green.
+cp /srv/repaircrm/prod/app/deploy/systemd/repaircrm@.service \
+   /srv/repaircrm/prod/app/deploy/systemd/repaircrm-autodeploy@.service \
+   /srv/repaircrm/prod/app/deploy/systemd/repaircrm-autodeploy@.timer \
+   /etc/systemd/system/
 systemctl daemon-reload
 
 log "nightly backups"
@@ -102,5 +107,6 @@ Bootstrap done. Next, by hand:
   5. sudo -u deploy /srv/repaircrm/staging/app/deploy/deploy.sh staging
      sudo -u deploy /srv/repaircrm/prod/app/deploy/deploy.sh prod
   6. systemctl enable --now repaircrm@prod repaircrm@staging
+     systemctl enable --now repaircrm-autodeploy@staging.timer   # develop -> staging
   7. create the first admin (see deploy/README.md)
 EOF

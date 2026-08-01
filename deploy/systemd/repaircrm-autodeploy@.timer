@@ -1,0 +1,17 @@
+# Poll origin every minute and deploy when the branch moves.
+#   sudo systemctl enable --now repaircrm-autodeploy@staging.timer
+# Prod is deliberately left manual — see deploy/README.md.
+[Unit]
+Description=poll origin for repaircrm (%i) and deploy on change
+
+[Timer]
+Unit=repaircrm-autodeploy@%i.service
+OnBootSec=3min
+# Measured from the last *activation*, so a 6-minute build pushes the next
+# check to 6min+60s rather than queueing ticks behind it.
+OnUnitActiveSec=60s
+AccuracySec=5s
+RandomizedDelaySec=10s
+
+[Install]
+WantedBy=timers.target
