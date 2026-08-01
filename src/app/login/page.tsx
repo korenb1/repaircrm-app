@@ -88,7 +88,6 @@ export default function LoginPage() {
                 name="email"
                 label={T.login.email}
                 type="email"
-                defaultValue="admin@repair.local"
                 fullWidth
                 autoComplete="username webauthn"
                 slotProps={{ inputLabel: { shrink: true } }}

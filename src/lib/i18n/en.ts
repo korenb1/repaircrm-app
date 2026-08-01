@@ -150,7 +150,7 @@ const en = {
       technician: "Technician",
       client: "Client",
       clientPlaceholder: "Name or phone",
-      createContact: "+ CONTACT",
+      createContact: "CONTACT",
       device: "Device",
       deviceState: "Device state",
       snImei: "Serial number / IMEI",

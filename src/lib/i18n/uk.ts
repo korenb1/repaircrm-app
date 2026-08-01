@@ -150,7 +150,7 @@ const uk: Dict = {
       technician: "Технік",
       client: "Клієнт",
       clientPlaceholder: "Ім'я або телефон",
-      createContact: "+ КОНТАКТ",
+      createContact: "КОНТАКТ",
       device: "Пристрій",
       deviceState: "Стан",
       snImei: "Серійний номер / IMEI",
