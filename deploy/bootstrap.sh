@@ -8,7 +8,7 @@
 # fill in the four env files and run deploy.sh (see deploy/README.md).
 set -euo pipefail
 
-REPO="https://github.com/korenb1/repaircrm-app.git"
+REPO="https://github.com/korenb1/repaircrm.git"
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 
