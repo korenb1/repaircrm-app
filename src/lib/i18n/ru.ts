@@ -200,6 +200,14 @@ const ru: Dict = {
       attachFile: "Прикрепить файл",
       send: "Отправить (Cmd/Ctrl+Enter)",
       uploadError: "Ошибка загрузки",
+      events: {
+        created: "Заявка создана",
+        statusChanged: "Статус: «{from}» → «{to}»",
+        itemAdded: "Добавлена позиция: {name} ×{qty}",
+        itemRemoved: "Удалена позиция: {name}",
+        invoiceAdded: "Создан счёт на {amount}",
+        paymentAdded: "{kind}: {amount}",
+      },
     },
   },
   contactCard: {

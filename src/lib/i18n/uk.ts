@@ -200,6 +200,14 @@ const uk: Dict = {
       attachFile: "Прикріпити файл",
       send: "Надіслати (Cmd/Ctrl+Enter)",
       uploadError: "Помилка завантаження",
+      events: {
+        created: "Заявку створено",
+        statusChanged: "Статус: «{from}» → «{to}»",
+        itemAdded: "Додано позицію: {name} ×{qty}",
+        itemRemoved: "Видалено позицію: {name}",
+        invoiceAdded: "Створено рахунок на {amount}",
+        paymentAdded: "{kind}: {amount}",
+      },
     },
   },
   contactCard: {

@@ -200,6 +200,16 @@ const en = {
       attachFile: "Attach file",
       send: "Send (Cmd/Ctrl+Enter)",
       uploadError: "Upload failed",
+      // Trigger-logged events. The DB stores only structured `meta`; these
+      // lines are composed at render time so they follow the reader's locale.
+      events: {
+        created: "Ticket created",
+        statusChanged: "Status: «{from}» → «{to}»",
+        itemAdded: "Item added: {name} ×{qty}",
+        itemRemoved: "Item removed: {name}",
+        invoiceAdded: "Invoice issued for {amount}",
+        paymentAdded: "{kind}: {amount}",
+      },
     },
   },
   contactCard: {

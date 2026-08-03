@@ -13,7 +13,11 @@ create table ticket_events (
                'created','status_changed','item_added','item_removed',
                'invoice_added','payment_added'
              )),
-  summary    text not null,            -- human-readable Ukrainian line
+  -- User-authored text only: a comment body or an attachment file name.
+  -- Empty for trigger-logged events — those carry structured data in `meta`
+  -- and the UI composes the sentence, so the timeline follows the reader's
+  -- locale instead of freezing one language at insert time.
+  summary    text not null default '',
   meta       jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
@@ -25,30 +29,29 @@ create index ticket_events_ticket_id_idx on ticket_events (ticket_id, created_at
 -- by RLS regardless of the acting role; search_path pinned for safety.
 -- actor_id comes from auth.uid() (the JWT sub == profiles.id), or null
 -- when run by a non-user role (service role / seed / psql).
+--
+-- They write structured data only — no prose. Wording lives in the app
+-- dictionaries (T.ticket.timeline.events); status labels are resolved from
+-- ticket_statuses at render time, and amounts are formatted by useMoney()
+-- with the profile's locale and the configured currency.
 -- ------------------------------------------------------------
 
 create or replace function log_ticket_created()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into ticket_events (ticket_id, actor_id, kind, summary, meta)
-  values (new.id, auth.uid(), 'created', 'Заявку створено', '{}'::jsonb);
+  insert into ticket_events (ticket_id, actor_id, kind, meta)
+  values (new.id, auth.uid(), 'created', '{}'::jsonb);
   return new;
 end;
 $$;
 
 create or replace function log_ticket_status_changed()
 returns trigger language plpgsql security definer set search_path = public as $$
-declare
-  v_from text;
-  v_to   text;
 begin
   if new.status is distinct from old.status then
-    select label into v_from from ticket_statuses where key = old.status;
-    select label into v_to   from ticket_statuses where key = new.status;
-    insert into ticket_events (ticket_id, actor_id, kind, summary, meta)
+    insert into ticket_events (ticket_id, actor_id, kind, meta)
     values (
       new.id, auth.uid(), 'status_changed',
-      'Статус: «' || coalesce(v_from, old.status) || '» → «' || coalesce(v_to, new.status) || '»',
       jsonb_build_object('from', old.status, 'to', new.status)
     );
   end if;
@@ -59,10 +62,9 @@ $$;
 create or replace function log_ticket_item_added()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into ticket_events (ticket_id, actor_id, kind, summary, meta)
+  insert into ticket_events (ticket_id, actor_id, kind, meta)
   values (
     new.ticket_id, auth.uid(), 'item_added',
-    'Додано позицію: ' || new.name || ' ×' || new.qty::text,
     jsonb_build_object('name', new.name, 'qty', new.qty, 'price', new.price)
   );
   return new;
@@ -72,10 +74,9 @@ $$;
 create or replace function log_ticket_item_removed()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into ticket_events (ticket_id, actor_id, kind, summary, meta)
+  insert into ticket_events (ticket_id, actor_id, kind, meta)
   values (
     old.ticket_id, auth.uid(), 'item_removed',
-    'Видалено позицію: ' || old.name,
     jsonb_build_object('name', old.name, 'qty', old.qty, 'price', old.price)
   );
   return old;
@@ -85,10 +86,9 @@ $$;
 create or replace function log_invoice_added()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into ticket_events (ticket_id, actor_id, kind, summary, meta)
+  insert into ticket_events (ticket_id, actor_id, kind, meta)
   values (
     new.ticket_id, auth.uid(), 'invoice_added',
-    'Створено рахунок на ' || new.amount::text || ' ₴',
     jsonb_build_object('amount', new.amount, 'status', new.status)
   );
   return new;
@@ -97,24 +97,13 @@ $$;
 
 create or replace function log_payment_added()
 returns trigger language plpgsql security definer set search_path = public as $$
-declare
-  v_label text;
 begin
   if new.ticket_id is null then
     return new;  -- contact-level payment, not tied to a ticket timeline
   end if;
-  v_label := case new.kind
-    when 'payment'    then 'Оплата'
-    when 'prepayment' then 'Передоплата'
-    when 'advance'    then 'Аванс'
-    when 'payout'     then 'Виплата'
-    when 'correction' then 'Коригування'
-    else new.kind
-  end;
-  insert into ticket_events (ticket_id, actor_id, kind, summary, meta)
+  insert into ticket_events (ticket_id, actor_id, kind, meta)
   values (
     new.ticket_id, auth.uid(), 'payment_added',
-    v_label || ': ' || new.amount::text || ' ₴',
     jsonb_build_object('kind', new.kind, 'amount', new.amount)
   );
   return new;

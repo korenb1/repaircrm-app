@@ -11,7 +11,9 @@ import CommentIcon from "@mui/icons-material/CommentOutlined";
 import AttachFileIcon from "@mui/icons-material/AttachFileOutlined";
 import ImageIcon from "@mui/icons-material/ImageOutlined";
 import { createClient } from "@/lib/supabase/client";
-import { useT } from "@/lib/i18n/context";
+import { useT, useMoney } from "@/lib/i18n/context";
+import { fmt as interpolate } from "@/lib/i18n";
+import { useStatuses } from "@/lib/status-context";
 import TimelineComposer from "@/components/tickets/tabs/TimelineComposer";
 import ImageLightbox, { type LightboxImage } from "@/components/ui/ImageLightbox";
 import type { TicketEventKind, TicketEventRow } from "@/lib/types";
@@ -42,16 +44,75 @@ interface AttachmentMeta {
   mime?: string;
 }
 
+// Whatever the trigger functions put in ticket_events.meta.
+interface EventMeta {
+  from?: string;
+  to?: string;
+  name?: string;
+  qty?: number;
+  amount?: number;
+  kind?: string;
+}
+
 function isImage(meta: AttachmentMeta) {
   if (meta.mime) return meta.mime.startsWith("image/");
   return IMAGE_EXT.test(meta.name ?? "");
 }
 
-function fmt(iso: string) {
-  // dd.mm.yyyy hh:mm — uk-style
+function fmtWhen(iso: string) {
+  // dd.mm.yyyy hh:mm
   const d = new Date(iso);
   const p = (n: number) => String(n).padStart(2, "0");
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// Trigger-logged events carry only structured `meta` — the sentence is built
+// here so it follows the UI locale, the user-editable status labels, and the
+// configured currency. comment/attachment rows are user text and pass through.
+//
+// Rows logged by an older build of the triggers still hold a prose `summary`,
+// but their `meta` has the same fields, so they render through this path too;
+// `summary` is the fallback only when meta is short.
+function useEventText() {
+  const T = useT();
+  const money = useMoney();
+  const { byKey } = useStatuses();
+
+  return (e: TicketEventRow): string => {
+    const E = T.ticket.timeline.events;
+    const m = (e.meta ?? {}) as EventMeta;
+    const status = (key: string) => byKey.get(key)?.label ?? key;
+
+    switch (e.kind) {
+      case "created":
+        return E.created;
+      case "status_changed":
+        return m.to
+          ? interpolate(E.statusChanged, { from: status(m.from ?? ""), to: status(m.to) })
+          : e.summary;
+      case "item_added":
+        return m.name
+          ? interpolate(E.itemAdded, { name: m.name, qty: m.qty ?? 1 })
+          : e.summary;
+      case "item_removed":
+        return m.name ? interpolate(E.itemRemoved, { name: m.name }) : e.summary;
+      case "invoice_added":
+        return m.amount != null
+          ? interpolate(E.invoiceAdded, { amount: money(Number(m.amount)) })
+          : e.summary;
+      case "payment_added": {
+        const kinds = T.finances.txKinds as Record<string, string | undefined>;
+        return m.amount != null
+          ? interpolate(E.paymentAdded, {
+              kind: (m.kind && kinds[m.kind]) || m.kind || "",
+              amount: money(Number(m.amount)),
+            })
+          : e.summary;
+      }
+      default:
+        return e.summary;
+    }
+  };
 }
 
 // Always-visible activity panel on the right of the ticket card: header, a
@@ -65,6 +126,7 @@ export default function TicketTimeline({
   events: TicketEventRow[];
 }) {
   const T = useT();
+  const eventText = useEventText();
   const supabase = createClient();
   const [lightbox, setLightbox] = useState<number | null>(null);
 
@@ -183,11 +245,11 @@ export default function TicketTimeline({
                       </Typography>
                     ) : (
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {e.summary}
+                        {eventText(e)}
                       </Typography>
                     )}
                     <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: isImg ? 0.5 : 0 }}>
-                      {fmt(e.created_at)}
+                      {fmtWhen(e.created_at)}
                       {e.actor?.full_name ? ` · ${e.actor.full_name}` : ""}
                     </Typography>
                   </Box>
