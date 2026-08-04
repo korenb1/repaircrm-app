@@ -56,7 +56,7 @@ create table contacts (
 -- tickets
 create table tickets (
   id bigint generated always as identity primary key,
-  number text generated always as ('A' || (2000 + id)::text) stored,  -- display like A2208
+  number text generated always as ('T' || (0000 + id)::text) stored,  -- display like T0008
   status text not null default 'new'
     check (status in ('draft','new','in_progress','ready','issued','return_no_repair')),
   manager_id    uuid   references profiles,
